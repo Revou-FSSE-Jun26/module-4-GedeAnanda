@@ -247,7 +247,7 @@ class Notification(db.Model):
 | Blueprint | auth |
 | Auth required | No |
 | Request body | `name` (string, required) · `email` (string, valid email, required) · `password` (string, min 8 chars, required) |
-| Success | `201 { "data": { "id": "...", "name": "...", "email": "..." } }` |
+| Success | `201 { "data": UserOut }` — id, name, email (never password_hash) |
 | Errors | `400` — missing/invalid fields or password < 8 chars · `409` — email already registered |
 
 #### `POST /api/auth/login`
@@ -257,7 +257,7 @@ class Notification(db.Model):
 | Blueprint | auth |
 | Auth required | No |
 | Request body | `email` (string, required) · `password` (string, required) |
-| Success | `200 { "data": { "access_token": "<jwt>", "user": { "id": "...", "name": "...", "email": "..." } } }` |
+| Success | `200 { "data": { "access_token": "<jwt>", "user": UserOut } }` |
 | Errors | `400` — missing fields · `401` — invalid credentials |
 
 ---
@@ -281,7 +281,7 @@ class Notification(db.Model):
 | Blueprint | boards |
 | Auth required | Yes |
 | Request body | — |
-| Success | `200 { "data": [ { "id": "...", "name": "..." }, ... ] }` |
+| Success | `200 { "data": [ BoardOut, ... ] }` — includes each board's id, name, the requesting user's role, and created_at |
 | Errors | `401` — no/invalid JWT |
 
 #### `GET /api/boards/<id>`
@@ -321,7 +321,7 @@ class Notification(db.Model):
 | Blueprint | boards |
 | Auth required | Yes (any board member) |
 | Request body | — |
-| Success | `200 { "data": [ { "user_id": "...", "name": "...", "email": "...", "role": "..." }, ... ] }` |
+| Success | `200 { "data": [ MemberOut, ... ] }` |
 | Errors | `401` — no/invalid JWT · `404` — board not found or user not a member |
 
 #### `POST /api/boards/<id>/members`
@@ -331,7 +331,7 @@ class Notification(db.Model):
 | Blueprint | boards |
 | Auth required | Yes (admin) |
 | Request body | `email` (string, required) · `role` (enum `admin`\|`member`, required) |
-| Success | `201 { "data": { "user_id": "...", "name": "...", "email": "...", "role": "..." } }` |
+| Success | `201 { "data": MemberOut }` |
 | Errors | `400` — invalid role · `401` — no/invalid JWT · `403` — not an admin · `404` — board not found or user not a member; email not registered · `409` — user already a member |
 
 #### `PATCH /api/boards/<id>/members/<user_id>`
@@ -395,7 +395,7 @@ class Notification(db.Model):
 | Blueprint | columns |
 | Auth required | Yes (member or admin) |
 | Request body | `column_id` (UUID, required) · `order` (float > 0, required) |
-| Success | `200 { "data": { "id": "...", "order": ... } }` |
+| Success | `200 { "data": { "column": ColumnOut, "rebalanced": bool, "column_orders": [ { "id": "<uuid>", "order": float }, ... ] } }` — `column_orders` is populated only when `rebalanced` is true; the client applies `column_orders` to local column state so the next reorder uses fresh order values |
 | Errors | `400` — `column_id` not a valid UUID or not on this board; `order` not a float > 0 · `401` — no/invalid JWT · `404` — board not found or user not a member |
 
 ---
@@ -409,7 +409,7 @@ class Notification(db.Model):
 | Blueprint | cards |
 | Auth required | Yes |
 | Query params | `assignee=me` (optional) · `board_id` (UUID, optional) · `q` (string, optional) |
-| Success | `200 { "data": [ { card fields... } ] }` — never includes soft-deleted cards |
+| Success | `200 { "data": [ CardOut, ... ] }` — never includes soft-deleted cards; CardOut includes board_id and board_name for /my-tasks grouping |
 | Errors | `401` — no/invalid JWT · `404` — `board_id` supplied but board not found or user not a member |
 
 #### `POST /api/columns/<id>/cards`
@@ -419,7 +419,7 @@ class Notification(db.Model):
 | Blueprint | cards |
 | Auth required | Yes (member or admin) |
 | Request body | `title` (string 1–200, required) · `description` (string ≤ 5000, optional) · `assignee_id` (UUID, optional) · `due_date` (date, optional) · `priority` (enum `low`\|`medium`\|`high`, default `medium`, optional) |
-| Success | `201 { "data": { card fields... } }` |
+| Success | `201 { "data": CardOut }` |
 | Errors | `400` — title absent/out of range; description too long; invalid assignee; invalid priority · `401` — no/invalid JWT · `404` — column not found or user not a member of its board |
 
 #### `PATCH /api/cards/<id>`
@@ -429,7 +429,7 @@ class Notification(db.Model):
 | Blueprint | cards |
 | Auth required | Yes (member or admin) |
 | Request body | `title` (string 1–200, optional) · `description` (string ≤ 5000, optional) · `assignee_id` (UUID, optional) · `due_date` (date, optional) · `priority` (enum, optional) |
-| Success | `200 { "data": { card fields... } }` |
+| Success | `200 { "data": CardOut }` |
 | Errors | `400` — validation failure · `401` — no/invalid JWT · `404` — card not found or user not a member of its board |
 
 #### `DELETE /api/cards/<id>`
@@ -449,7 +449,7 @@ class Notification(db.Model):
 | Blueprint | cards |
 | Auth required | Yes (member or admin) |
 | Request body | `column_id` (UUID, required — must belong to same board) · `order` (float > 0, required) |
-| Success | `200 { "data": { card fields including completed_at... } }` |
+| Success | `200 { "data": { "card": CardOut, "rebalanced": bool, "column_orders": [ { "id": "<uuid>", "order": float }, ... ] } }` — `column_orders` is populated only when `rebalanced` is true; `useDragAndDrop` applies `column_orders` to local state so the next drag uses fresh order values |
 | Errors | `400` — `column_id` not a valid UUID, not on same board, or `order` ≤ 0 · `401` — no/invalid JWT · `404` — card not found or user not a member of its board |
 
 ---
@@ -463,7 +463,7 @@ class Notification(db.Model):
 | Blueprint | comments |
 | Auth required | Yes (member or admin) |
 | Request body | `content` (string 1–2000, required) |
-| Success | `201 { "data": { "id": "...", "card_id": "...", "author_id": "...", "content": "...", "created_at": "..." } }` |
+| Success | `201 { "data": CommentOut }` — includes nested author { id, name } required by CommentList |
 | Errors | `400` — content absent or out of range · `401` — no/invalid JWT · `404` — card not found, soft-deleted, or user not a board member |
 
 #### `GET /api/cards/<id>/comments`
@@ -473,7 +473,7 @@ class Notification(db.Model):
 | Blueprint | comments |
 | Auth required | Yes (member or admin) |
 | Request body | — |
-| Success | `200 { "data": [ { comment fields... } ] }` — chronological order |
+| Success | `200 { "data": [ CommentOut, ... ] }` — chronological order; each CommentOut includes nested author { id, name } |
 | Errors | `401` — no/invalid JWT · `404` — card not found, soft-deleted, or user not a board member |
 
 #### `PATCH /api/comments/<id>`
@@ -483,7 +483,7 @@ class Notification(db.Model):
 | Blueprint | comments |
 | Auth required | Yes (comment author) |
 | Request body | `content` (string 1–2000, required) |
-| Success | `200 { "data": { comment fields... } }` |
+| Success | `200 { "data": CommentOut }` |
 | Errors | `400` — content out of range · `401` — no/invalid JWT · `403` — not the author · `404` — comment not found or user not a board member |
 
 #### `DELETE /api/comments/<id>`
@@ -507,8 +507,8 @@ class Notification(db.Model):
 | Blueprint | notifications |
 | Auth required | Yes |
 | Query params | `page` (int ≥ 1, default 1) · `per_page` (int 1–100, default 20) |
-| Success | `200 { "data": { "items": [ { notification fields... } ], "page": 1, "per_page": 20, "total": 42, "unread_count": 3 } }` — reverse chronological order |
-| Errors | `400` — `page` < 1 or `per_page` out of range · `401` — no/invalid JWT |
+| Success | `200 { "data": { "items": [ NotificationOut, ... ], "page": 1, "per_page": 20, "total": 42, "unread_count": 3 } }` — reverse chronological order |
+| Errors | `400` — `page` is not an integer >= 1, or `per_page` is not an integer from 1 to 100 · `401` — no/invalid JWT |
 
 #### `PATCH /api/notifications/<id>/read`
 
@@ -545,7 +545,7 @@ class Notification(db.Model):
 | Blueprint | users |
 | Auth required | Yes |
 | Request body | — |
-| Success | `200 { "data": { "id": "...", "name": "...", "email": "..." } }` — no password hash |
+| Success | `200 { "data": UserOut }` — id, name, email; never password_hash |
 | Errors | `401` — no/invalid JWT |
 
 #### `PATCH /api/users/me`
@@ -555,7 +555,7 @@ class Notification(db.Model):
 | Blueprint | users |
 | Auth required | Yes |
 | Request body | `name` (string, optional) · `email` (string valid email, optional) — `password` field rejected with `400` |
-| Success | `200 { "data": { "id": "...", "name": "...", "email": "..." } }` |
+| Success | `200 { "data": UserOut }` |
 | Errors | `400` — `password` field present; invalid email · `401` — no/invalid JWT · `409` — email already in use |
 
 ---
@@ -792,6 +792,84 @@ Notification creation is handled inside the relevant service functions (`cards/s
 
 ---
 
+## Response Schemas
+
+> *Marshmallow dump-only schemas used to serialise API responses. These are used in the endpoint catalog below. The `password_hash` field is never included in any response schema.*
+
+```python
+# app/blueprints/users/schema.py (dump)
+class UserOut(Schema):
+    id    = fields.UUID(dump_only=True)
+    name  = fields.String(dump_only=True)
+    email = fields.Email(dump_only=True)
+
+# app/blueprints/boards/schema.py (dump)
+class BoardOut(Schema):
+    id         = fields.UUID(dump_only=True)
+    name       = fields.String(dump_only=True)
+    role       = fields.String(dump_only=True)   # the requesting user's role on this board
+    created_at = fields.DateTime(dump_only=True)
+
+# app/blueprints/columns/schema.py (dump)
+class ColumnOut(Schema):
+    id       = fields.UUID(dump_only=True)
+    board_id = fields.UUID(dump_only=True)
+    name     = fields.String(dump_only=True)
+    order    = fields.Float(dump_only=True)
+    is_done  = fields.Boolean(dump_only=True)
+
+# app/blueprints/cards/schema.py (dump)
+class AssigneeOut(Schema):
+    id   = fields.UUID(dump_only=True)
+    name = fields.String(dump_only=True)
+
+class CardOut(Schema):
+    id           = fields.UUID(dump_only=True)
+    column_id    = fields.UUID(dump_only=True)
+    board_id     = fields.UUID(dump_only=True)
+    board_name   = fields.String(dump_only=True)   # required by /my-tasks (REQ-12.4)
+    title        = fields.String(dump_only=True)
+    description  = fields.String(dump_only=True, allow_none=True)
+    priority     = fields.String(dump_only=True)
+    due_date     = fields.Date(dump_only=True, allow_none=True)
+    order        = fields.Float(dump_only=True)
+    completed_at = fields.DateTime(dump_only=True, allow_none=True)
+    created_by   = fields.UUID(dump_only=True)
+    assignee     = fields.Nested(AssigneeOut, dump_only=True, allow_none=True)
+
+# app/blueprints/comments/schema.py (dump)
+class AuthorOut(Schema):
+    id   = fields.UUID(dump_only=True)
+    name = fields.String(dump_only=True)
+
+class CommentOut(Schema):
+    id         = fields.UUID(dump_only=True)
+    card_id    = fields.UUID(dump_only=True)
+    content    = fields.String(dump_only=True)
+    created_at = fields.DateTime(dump_only=True)
+    updated_at = fields.DateTime(dump_only=True)
+    author     = fields.Nested(AuthorOut, dump_only=True)   # required by CommentList (REQ-28)
+
+# app/blueprints/notifications/schema.py (dump)
+class NotificationOut(Schema):
+    id         = fields.UUID(dump_only=True)
+    type       = fields.String(dump_only=True)
+    message    = fields.String(dump_only=True)
+    is_read    = fields.Boolean(dump_only=True)
+    card_id    = fields.UUID(dump_only=True, allow_none=True)
+    board_id   = fields.UUID(dump_only=True, allow_none=True)
+    created_at = fields.DateTime(dump_only=True)
+
+# app/blueprints/boards/schema.py (dump)
+class MemberOut(Schema):
+    user_id = fields.UUID(dump_only=True)
+    name    = fields.String(dump_only=True)
+    email   = fields.Email(dump_only=True)
+    role    = fields.String(dump_only=True)
+```
+
+---
+
 ## Marshmallow Schemas (key schemas)
 
 ```python
@@ -837,7 +915,7 @@ class ColumnUpdateSchema(Schema):
 
 class ColumnReorderSchema(Schema):
     column_id = fields.UUID(required=True)
-    order     = fields.Float(required=True, validate=validate.Range(min=1e-10))
+    order     = fields.Float(required=True, validate=validate.Range(min=0, min_inclusive=False))
 ```
 
 ```python
@@ -863,12 +941,14 @@ class CardUpdateSchema(Schema):
 
 class CardPositionSchema(Schema):
     column_id = fields.UUID(required=True)
-    order     = fields.Float(required=True, validate=validate.Range(min=1e-10))
+    order     = fields.Float(required=True, validate=validate.Range(min=0, min_inclusive=False))
 
 class CardQuerySchema(Schema):
-    assignee  = fields.String()
-    board_id  = fields.UUID()
-    q         = fields.String()
+    assignee = fields.String(validate=validate.OneOf(["me"]))
+    board_id = fields.UUID()
+    q        = fields.String()
+    # Service layer must return 400 { "error": "assignee or board_id is required" }
+    # if neither assignee nor board_id is provided in the request.
 ```
 
 ```python
