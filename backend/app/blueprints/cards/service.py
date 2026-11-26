@@ -118,18 +118,21 @@ def move_card(user_id: uuid.UUID, card_id: uuid.UUID, data: dict) -> dict:
     }
 
 
-def get_card_for_member(user_id: uuid.UUID, card_id: uuid.UUID) -> tuple[Card, BoardMember]:
+def get_card_for_member(
+    user_id: uuid.UUID, card_id: uuid.UUID, not_found: str = CARD_NOT_FOUND
+) -> tuple[Card, BoardMember]:
     """Return an active card and the caller's membership of its board.
 
     A deleted card, an unknown card and a card on someone else's board all raise
-    the same ``AppError(404)``.
+    the same ``AppError(404)``. ``not_found`` is the message for a caller that
+    asked for something inside the card (a comment).
     """
     card = db.session.scalar(
         active_cards().where(Card.id == card_id).options(joinedload(Card.column))
     )
     if card is None:
-        raise AppError(404, CARD_NOT_FOUND)
-    membership = require_member(user_id, card.column.board_id, CARD_NOT_FOUND)
+        raise AppError(404, not_found)
+    membership = require_member(user_id, card.column.board_id, not_found)
     return card, membership
 
 
