@@ -70,11 +70,13 @@ Brief v0.1 never listed the assignment's exact routes or page behaviors, so Kiro
 | 26 | REQ-27.6 | Does not say whether search results come from `GET /api/cards?q=` (REQ-13) or from a client-side filter | Ambiguous | R6 |
 | 27 | REQ-29.1 | "the application's main pages" is vague | Vague | R6 |
 | 28 | REQ-9.9, REQ-31, REQ-12 | The native HTML5 DnD API is not stated; `lib/toast` has no criterion; My Tasks does not use `BaseBadge` for priority | Missing criterion | R6 |
+| 29 | REQ-11.9 | A non-integer `page` (for example `?page=abc`) is not covered; the R3 prompt itself only said "page < 1" | Edge case | R4 |
 
 **Round status:**
 
 - **R1** was applied on 2026-11-26 ([CHANGELOG CL-02](../CHANGELOG.md#cl-02)). Kiro edited outside the requested scope once, so the R2–R6 prompts say explicitly that other problems must be reported, not fixed.
 - **R2** was applied on 2026-11-26 ([CHANGELOG CL-03](../CHANGELOG.md#cl-03)). It added REQ-25 to REQ-32 (46 criteria), only appended, and left existing criteria untouched. Findings #20–#28 come from reviewing R2 and are handled in R6, after brief v0.3.
+- **R3** was applied on 2026-11-26 ([CHANGELOG CL-04](../CHANGELOG.md#cl-04)). All 7 items were applied as appended criteria (10 additions, 0 deletions). Finding #29 is a gap in the R3 prompt itself and was added to R4.
 
 ## Refinement prompts
 
@@ -164,6 +166,8 @@ Refinement round 4 — logic and testability defects. Fix exactly these:
 - REQ-1: the reference "F — Infrastructure" is not a valid ID; use "§5.3, NFR-4".
 - REQ-10.3: replace "non-deleted-card comments" with "the card's comments in chronological
   order", and add: IF the card is soft-deleted, THEN THE API SHALL return 404.
+- REQ-11.9: "page is less than 1" misses non-numeric values. Rewrite it as "IF page is not
+  an integer greater than or equal to 1, or per_page is not an integer from 1 to 100".
 Change nothing else. If you notice any other problem, report it at the end instead of
 fixing it. List every edit at the end.
 ```

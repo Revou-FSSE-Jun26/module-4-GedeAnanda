@@ -14,6 +14,7 @@ Raw AI output is committed **before** each refinement, so every entry can be ver
 | [CL-01](#cl-01) | `specs/project-brief.md` | Brief v0.1 → v0.2 | Claude Code | Added the canonical endpoint catalog and the required frontend behaviors |
 | [CL-02](#cl-02) | `requirements.md` | R1 | Kiro (Spec) | Aligned 5 endpoint paths with the assignment; added the column reorder endpoint |
 | [CL-03](#cl-03) | `requirements.md` | R2 | Kiro (Spec) | Added 8 frontend requirements (46 criteria) for pages, hooks, `lib/` and shared components |
+| [CL-04](#cl-04) | `requirements.md` | R3 | Kiro (Spec) | Added 10 missing criteria required by the assignment (validation, 401/404/409 cases, pagination) |
 
 ---
 
@@ -93,7 +94,7 @@ No method or path appeared anywhere in the brief. The frontend was only describe
 | Tool | Kiro, Spec mode |
 | Trigger | Review finding #6 |
 | Prompt | R2 in [requirements-v1-review.md](reviews/requirements-v1-review.md#r2--frontend-coverage) |
-| Commits | before `c66acec` → after: the R2 refinement commit |
+| Commits | before `c66acec` → after `b968ca0` |
 
 **Trigger.** The requirements had 90 API criteria but only 24 Web criteria, and most of the Web ones were NFRs. Nothing covered the Dashboard, the Board Detail rendering, the comment UI in `CardDetailModal`, Register validation, `useErrorHandler`, `apiClient` or the shared components. As a result, `design.md` would have had no acceptance criteria to map to the Next.js pages, which the rubric requires.
 
@@ -128,3 +129,51 @@ Example, REQ-28.6 and 28.7 (new):
   - **#23 Endpoint with no consumer.** `PATCH /api/notifications/<id>/read` has no UI that calls it.
   - **#24 Conflicting requirements.** The assignee picker (REQ-28.2) needs `GET /members`, but REQ-16 makes that admin-only, so a regular member could never assign a card. Neither requirement is wrong alone; the conflict only shows when the two are read together.
 - **Root cause and fix.** Findings #20, #23 and #24 trace back to gaps in the brief, so the brief was updated to **v0.3** first: password at least 8 characters on both client and API, `GET /members` readable by any member, and a `NotificationBell` list with click-to-mark-read. All nine findings are then addressed by refinement round **R6**.
+
+---
+
+## CL-04
+
+**Requirements R3: add the missing criteria the assignment requires**
+
+| Field | Value |
+| ----- | ----- |
+| Date | 2026-11-26 |
+| Artifact | `.kiro/specs/revotask-mvp/requirements.md` |
+| Tool | Kiro, Spec mode |
+| Trigger | Review findings #8–#12, #19 |
+| Prompt | R3 in [requirements-v1-review.md](reviews/requirements-v1-review.md#r3--missing-criteria-required-by-the-assignment) |
+| Commits | before `b968ca0` → after: the R3 refinement commit |
+
+**Trigger.** Some behaviors the assignment or rubric require explicitly had no acceptance criterion:
+
+- the `page` and `per_page` parameters for notifications
+- validation through `CardPositionSchema`
+- `401` on comment endpoints (the rubric's comment tests require 201, 400, 401 and 403)
+- error cases for the reorder endpoint added in R1
+- duplicate-member and last-admin protection
+
+A behavior without a criterion has no test, so these would have been missed in `tasks.md` and pytest.
+
+**Before → After.**
+
+| Criterion | Before | After |
+| --------- | ------ | ----- |
+| REQ-6.8 | *(missing)* | IF the reorder `column_id` is not a valid UUID or not a column on that board, THEN `400` |
+| REQ-6.9 | *(missing)* | IF the reorder `order` is not a float > 0, THEN `400` |
+| REQ-9.11 | `CardPositionSchema` not named; malformed UUID unhandled | Body validated with `CardPositionSchema`; IF `column_id` is not a valid UUID, THEN `400` |
+| REQ-10.7 | *(missing)* | IF any comment endpoint is called without a valid JWT, THEN `401` |
+| REQ-10.8 | *(missing)* | IF the user is not a member of the card's board, THEN `404` |
+| REQ-11.8 | Pagination mentioned without its parameters | `GET /api/notifications` reads the `page` and `per_page` query parameters |
+| REQ-11.9 | *(missing)* | IF `page` < 1 or `per_page` is not an integer from 1 to 100, THEN `400` |
+| REQ-11.10 | *(missing)* | IF a user marks another user's notification as read, THEN `404` |
+| REQ-16.9 | *(missing)* | IF the email already belongs to a member of the board, THEN `409` |
+| REQ-16.10 | *(missing)* | IF a role change via `PATCH` would leave the board with no admin, THEN `400` |
+
+**Review of the result.**
+
+- **Complete.** All 7 requested items were applied.
+- **Scope respected.** The diff has 10 additions and 0 deletions, and no existing criterion was renumbered or reworded.
+- **Rubric check.** REQ-10 now specifies every status code the rubric's comment tests need: `201` (10.1), `400` (10.2), `401` (10.7) and `403` (10.6), plus `404` for non-members (10.8).
+- **Improvement over the prompt.** For REQ-16.10 the prompt said "demotes the last remaining admin"; Kiro wrote "a role that would leave the board with no remaining admin", which covers the same case more precisely. Accepted.
+- **Gap in our own prompt (finding #29).** The prompt only said "page < 1", so `?page=abc` is still undefined. This was the author's mistake, not Kiro's, and it is fixed in R4.
