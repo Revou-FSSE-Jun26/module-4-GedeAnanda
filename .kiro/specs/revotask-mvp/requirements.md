@@ -331,9 +331,9 @@ RevoTask is a Trello-like task management web application consisting of two depl
 
 #### Acceptance Criteria
 
-1. THE API SHALL hash all passwords before storage using Werkzeug's password hashing and SHALL NOT store or return passwords in plain text.
+1. Covered by REQ-2.4.
 2. WHEN a JWT is issued on login, THE API SHALL set its expiry to 24 hours from the time of issue.
-3. THE API SHALL enforce JWT authentication on every endpoint except `POST /api/auth/register`, `POST /api/auth/login`, and `GET /api/health`.
+3. Covered by REQ-4.2.
 4. THE API SHALL enforce authorisation rules (role and ownership checks) in the service layer, not in route handlers.
 5. THE API SHALL restrict CORS to origins listed in the `CORS_ORIGINS` environment variable.
 6. THE API SHALL read all secrets (database URL, JWT secret key, CORS origins) from environment variables and SHALL NOT include secrets in source code.
@@ -350,7 +350,7 @@ RevoTask is a Trello-like task management web application consisting of two depl
 
 1. WHEN a request is made to `GET /api/boards/<id>` on the production deployment for a board with up to 200 non-deleted cards, THE API SHALL respond within 500 milliseconds at the 95th percentile.
 2. THE API SHALL use SQLAlchemy eager loading when fetching a board with its columns and cards to avoid N+1 queries.
-3. WHEN a card move is initiated, THE Web SHALL update the card's position in the UI before the API response is received.
+3. Covered by REQ-9.7.
 
 ---
 
@@ -376,9 +376,9 @@ RevoTask is a Trello-like task management web application consisting of two depl
 
 #### Acceptance Criteria
 
-1. IF a card move API request fails, THEN THE Web SHALL restore the card to its original position and display an error toast.
+1. Covered by REQ-9.8.
 2. THE API SHALL run with `debug = False` in the production configuration.
-3. THE API SHALL always return responses in the JSON envelope format and SHALL NOT return raw HTML error pages or stack traces.
+3. Covered by REQ-17.5.
 
 ---
 
