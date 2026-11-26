@@ -1,0 +1,48 @@
+# ---------- Environment / secrets ----------
+# Real env files are never committed. Only .env.example files are.
+.env
+.env.*
+!.env.example
+*.pem
+
+# ---------- Python (backend) ----------
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+env/
+.pytest_cache/
+.coverage
+htmlcov/
+instance/
+*.egg-info/
+
+# ---------- Node / Next.js (frontend) ----------
+node_modules/
+.next/
+out/
+build/
+.vercel/
+*.tsbuildinfo
+next-env.d.ts
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+.pnpm-debug.log*
+
+# ---------- Playwright ----------
+# playwright-report/ is intentionally NOT ignored: the HTML report is a deliverable.
+test-results/
+blob-report/
+playwright/.cache/
+
+# ---------- Editors / OS ----------
+.DS_Store
+.idea/
+.vscode/*
+!.vscode/extensions.json
+*.swp
+
+# ---------- AI tools ----------
+# .kiro/ (specs + steering) IS committed as evidence of the AI workflow.
+.claude/settings.local.json
