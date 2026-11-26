@@ -11,14 +11,15 @@ This plan builds the RevoTask MVP in incremental layers: backend skeleton → he
     - Create `backend/app/__init__.py` with the `create_app()` application factory; register extensions, blueprints, error handlers, and the health endpoint placeholder
     - Create `backend/app/config.py` with the `Config` class; normalise `DATABASE_URL` by replacing a leading `"postgres://"` with `"postgresql://"` (Railway compatibility); read `DATABASE_URL`, `SECRET_KEY`, `JWT_SECRET_KEY`, `CORS_ORIGINS`, `FLASK_ENV` from environment; set `JWT_ACCESS_TOKEN_EXPIRES` to 24 hours; set `debug = False` for production
     - Create `backend/app/extensions.py` with shared extension instances: `db` (Flask-SQLAlchemy), `migrate` (Flask-Migrate), `jwt` (Flask-JWT-Extended), `cors` (Flask-CORS)
+    - Configure Flask-CORS in `create_app()` with `origins` read from `CORS_ORIGINS` (comma-separated list), applied to `/api/*`
     - Create `backend/app/exceptions.py` with `AppError(Exception)` holding `status_code: int` and `message: str`; register a single `@app.errorhandler(AppError)` in the factory that returns `{ "error": message }` with `status_code`
     - Register JWT loaders in the factory: `@jwt.unauthorized_loader`, `@jwt.invalid_token_loader`, and `@jwt.expired_token_loader` all return `401 { "error": "missing or invalid token" }`
     - Register `@app.errorhandler(ValidationError)` returning `400 { "error": "<first message>" }`, `@app.errorhandler(NotFound)` returning `404 { "error": "not found" }`, `@app.errorhandler(HTTPException)` returning `e.code { "error": e.description }`, and catch-all `@app.errorhandler(Exception)` returning `500 { "error": "internal server error" }` with no stack trace
     - Create `backend/wsgi.py` as the Gunicorn entry point: `from app import create_app; app = create_app()`
     - Create `backend/requirements.txt` listing: Flask, Flask-SQLAlchemy, Flask-Migrate, Flask-JWT-Extended, Flask-CORS, marshmallow, Werkzeug, psycopg2-binary, gunicorn, pytest, pytest-flask, python-dotenv
-    - Create `backend/.env.example` listing all required env vars (`DATABASE_URL`, `SECRET_KEY`, `JWT_SECRET_KEY`, `CORS_ORIGINS`, `FLASK_ENV`) with placeholder values and no real secrets
+    - Create `backend/.env.example` listing all required env vars (`DATABASE_URL`, `TEST_DATABASE_URL`, `SECRET_KEY`, `JWT_SECRET_KEY`, `CORS_ORIGINS`, `FLASK_ENV`) with placeholder values and no real secrets
     - Create empty `backend/app/blueprints/` package directory tree (one `__init__.py` per blueprint folder: auth, boards, columns, cards, comments, notifications, analytics, users)
-    - _Requirements: REQ-18.6, REQ-21.2, REQ-22.1_
+    - _Requirements: REQ-18.5, REQ-18.6, REQ-21.2, REQ-22.1_
 
   - [ ] 1.2 Create all Flask-SQLAlchemy models
     - Create `backend/app/models/__init__.py` that re-exports all models so Flask-Migrate can discover them
@@ -35,7 +36,7 @@ This plan builds the RevoTask MVP in incremental layers: backend skeleton → he
 - [ ] 2. Health endpoint and pytest setup
   - [ ] 2.1 Implement `GET /api/health` in the app factory
     - Add the health route inside `create_app()` in `backend/app/__init__.py`; execute a trivial DB query (`db.session.execute(text("SELECT 1"))`); return `200 { "data": { "status": "ok" } }` on success and `503 { "error": "database unavailable" }` if the DB is unreachable
-    - Create `backend/tests/conftest.py` with pytest fixtures: `app` (test Flask app with in-memory or test-database config), `client` (Flask test client), `db_session` (clean database session per test), `test_user` and `test_user_2` (pre-created User rows), `auth_headers` (helper returning `Authorization: Bearer <jwt>` for a given user)
+    - Create `backend/tests/conftest.py` with pytest fixtures: `app` (test Flask app using a separate PostgreSQL database from `TEST_DATABASE_URL` — never in-memory SQLite, which drops timezone info on `DateTime(timezone=True)` and does not enforce `ondelete="SET NULL"`), `client` (Flask test client), `db_session` (clean database session per test), `test_user` and `test_user_2` (pre-created User rows), `auth_headers` (helper returning `Authorization: Bearer <jwt>` for a given user)
     - Create `backend/tests/test_health.py` with tests: `GET /api/health` returns `200 { "data": { "status": "ok" } }`
     - _Requirements: REQ-1.1, REQ-1.2, REQ-1.3_
 
@@ -125,7 +126,7 @@ This plan builds the RevoTask MVP in incremental layers: backend skeleton → he
 - [ ] 7. Cards blueprint
   - [ ] 7.1 Implement cards routes, service, and schemas
     - Create `backend/app/blueprints/cards/schema.py`: `CardSchema` (title String 1–200 required, description String ≤5000 optional, assignee_id UUID optional, due_date Date optional, priority OneOf `["low","medium","high"]` default `"medium"`); `CardUpdateSchema` (all fields optional); `CardPositionSchema` (column_id UUID required, order Float `validate.Range(min=0, min_inclusive=False)` required); `CardQuerySchema` (assignee OneOf `["me"]` optional, board_id UUID optional, q String optional); dump schemas `CardOut` (id, column_id, board_id, board_name, title, description, priority, due_date, order, completed_at, created_by, assignee nested AssigneeOut); `AssigneeOut` (id, name)
-    - Create `backend/app/blueprints/cards/service.py`: `list_cards(user_id, params)` — raise `AppError(400, "assignee or board_id is required")` if neither `assignee` nor `board_id` is provided; filter `deleted_at IS NULL`; support `assignee=me`, `board_id`, and `q` (ILIKE on title); check board membership for `board_id` (raise `AppError(404, ...)`); include `board_id` and `board_name` in `CardOut`; `create_card(user_id, column_id, data)` — membership check, validate `assignee_id` is a board member (raise `AppError(400, ...)`), calculate FLOAT order, set `created_by`, trigger N1 notification if `assignee_id` provided and not self; `update_card(user_id, card_id, data)` — membership check, validate fields, trigger N1 notification on assignee change; `soft_delete_card(user_id, card_id)` — membership check, ownership-or-admin check (raise `AppError(403, ...)`), set `deleted_at`; `move_card(user_id, card_id, data)` — membership check, validate `column_id` on same board (raise `AppError(400, ...)`), update `column_id` and `order`, apply FLOAT rebalance if needed, handle `completed_at` lifecycle (set on move to `is_done=true` column; clear on move to `is_done=false` column), trigger N1 notification if card has assignee and not self; return `CardOut` plus `rebalanced` and `column_orders`
+    - Create `backend/app/blueprints/cards/service.py`: `list_cards(user_id, params)` — raise `AppError(400, "assignee or board_id is required")` if neither `assignee` nor `board_id` is provided; filter `deleted_at IS NULL`; support `assignee=me`, `board_id`, and `q` (ILIKE on title); check board membership for `board_id` (raise `AppError(404, ...)`); include `board_id` and `board_name` in `CardOut`; `create_card(user_id, column_id, data)` — membership check, validate `assignee_id` is a board member (raise `AppError(400, ...)`), calculate FLOAT order, set `created_by`, trigger N1 notification if `assignee_id` provided and not self; `update_card(user_id, card_id, data)` — membership check, validate fields, trigger N1 notification on assignee change; `soft_delete_card(user_id, card_id)` — membership check, ownership-or-admin check (raise `AppError(403, ...)`), set `deleted_at`; `move_card(user_id, card_id, data)` — membership check, validate `column_id` on same board (raise `AppError(400, ...)`), update `column_id` and `order`, apply FLOAT rebalance if needed, handle `completed_at` lifecycle (set on move to `is_done=true` column; clear on move to `is_done=false` column); no notification on a move (N1 is created only when `assignee_id` is set or changed — REQ-11.1); return `CardOut` plus `rebalanced` and `column_orders`
     - Create `backend/app/blueprints/cards/routes.py`: `GET /api/cards`, `POST /api/columns/<id>/cards`, `PATCH /api/cards/<id>`, `DELETE /api/cards/<id>`, `PATCH /api/cards/<id>/position`; no `try/except`
     - Register the cards Blueprint in `create_app()`
     - _Requirements: REQ-7.1–7.7, REQ-8.1–8.4, REQ-9.1–9.6, REQ-9.11, REQ-12.1–12.3, REQ-13.1, REQ-13.3_
@@ -251,7 +252,7 @@ This plan builds the RevoTask MVP in incremental layers: backend skeleton → he
   - [ ] 13.1 Bootstrap Next.js project and configure TypeScript, Tailwind, and environment
     - Initialise a Next.js App Router project in `frontend/` using `create-next-app` with TypeScript enabled; set `"strict": true` and `"noImplicitAny": true` in `frontend/tsconfig.json`; install and configure Tailwind CSS
     - Create `frontend/.env.example` listing `NEXT_PUBLIC_API_BASE_URL` (used by Client Components) and `API_BASE_URL` (used by Server Components) with placeholder values
-    - Install dependencies: `react-hot-toast`, `@dnd-kit/core` (or native HTML5 DnD — align with design), TypeScript types
+    - Install dependencies: `react-hot-toast` plus the test tooling. No drag-and-drop library: drag-and-drop uses only the native HTML5 Drag and Drop API (REQ-9.9)
     - _Requirements: REQ-22.3, REQ-31.1–31.2_
 
   - [ ] 13.2 Create TypeScript types
@@ -260,9 +261,9 @@ This plan builds the RevoTask MVP in incremental layers: backend skeleton → he
 
   - [ ] 13.3 Create lib/ modules
     - Create `frontend/lib/errors.ts`: `ApiError` class with `statusCode: number` and `message: string`
-    - Create `frontend/lib/apiClient.ts`: typed fetch wrapper; reads `NEXT_PUBLIC_API_BASE_URL` in Client Components and `API_BASE_URL` in Server Components; attaches `Authorization: Bearer <token>` when a token is available; throws `ApiError` on any non-2xx response by extracting `statusCode` from HTTP status and `message` from `{ "error": "..." }` envelope
+    - Create `frontend/lib/apiClient.ts`: typed fetch wrapper; reads `NEXT_PUBLIC_API_BASE_URL` in Client Components and `API_BASE_URL` in Server Components; takes the token as an explicit argument and attaches `Authorization: Bearer <token>` when one is given; imports nothing server-only, so it is safe in both Client and Server Components; throws `ApiError` on any non-2xx response by extracting `statusCode` from HTTP status and `message` from `{ "error": "..." }` envelope
     - Create `frontend/lib/toast.ts`: thin wrappers `success()`, `error()`, `loading()` over `react-hot-toast`
-    - Create `frontend/lib/auth.ts`: cookie helpers `getToken()`, `setToken(token, expires)`, `clearToken()` using `document.cookie` (client-side) and `next/headers` cookies (server-side where needed); expiry equals JWT 24-hour lifetime
+    - Create `frontend/lib/auth.ts` (client-only): cookie helpers `getToken()`, `setToken(token, expires)`, `clearToken()` using `document.cookie`; expiry equals JWT 24-hour lifetime; must never import `next/headers` (server-only — would break the client build). Server Components read the cookie themselves with `cookies()` from `next/headers` and pass the token to `apiClient`
     - _Requirements: REQ-31.1–31.5_
 
   - [ ] 13.4 Create AuthContext
@@ -292,7 +293,7 @@ This plan builds the RevoTask MVP in incremental layers: backend skeleton → he
     - _Requirements: REQ-9.7–9.9, REQ-21.1_
 
   - [ ] 14.4 Create Next.js middleware
-    - Create `frontend/middleware.ts` (Edge middleware): read the `revotask_token` cookie; redirect unauthenticated requests to protected routes to `/login`; explicitly exclude `/login` and `/register` from protection; use `NextResponse.redirect`
+    - Create `frontend/middleware.ts` (Edge middleware; on Next.js 16+ the file is `frontend/proxy.ts` instead): read the `revotask_token` cookie; redirect unauthenticated requests to protected routes to `/login`; explicitly exclude `/login` and `/register` from protection; use `NextResponse.redirect`
     - _Requirements: REQ-4.1_
 
 - [ ] 15. Auth pages
@@ -372,7 +373,8 @@ This plan builds the RevoTask MVP in incremental layers: backend skeleton → he
 - [ ] 22. Vercel deploy
   - [ ] 22.1 Configure and deploy the frontend to Vercel
     - Connect the `frontend/` directory to a Vercel project; set environment variables: `NEXT_PUBLIC_API_BASE_URL` (Railway public URL) and `API_BASE_URL` (same Railway URL, available to Server Components at build time)
-    - Verify that the live Vercel URL loads the login page and that an authenticated user can reach the dashboard
+    - After the first Vercel deploy, add the Vercel production URL to `CORS_ORIGINS` on Railway and redeploy the API
+    - Verify that the live Vercel URL loads the login page and that a browser login from the live site succeeds and reaches the dashboard
     - _Requirements: REQ-31.1–31.2_
 
 - [ ] 23. Playwright E2E tests
