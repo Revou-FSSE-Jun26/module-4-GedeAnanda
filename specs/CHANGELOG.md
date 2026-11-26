@@ -24,6 +24,7 @@ Raw AI output is committed **before** each refinement, so every entry can be ver
 | [CL-11](#cl-11) | `design.md` | DR4 | Kiro (Spec) | Per-criterion traceability table, missing form components, `AppError` pattern, test-strategy and reference fixes |
 | [CL-12](#cl-12) | `design.md` | DR5 | Kiro (Spec) | Mapped the last unmapped criterion (REQ-2.6); design accepted with 187/187 criteria traced |
 | [CL-13](#cl-13) | `tasks.md` | TR1 | Claude Code | Removed 2 invented behaviors, fixed a build-breaking module, the test database and the CORS setup |
+| [CL-14](#cl-14) | `tasks.md` | TR2 | Claude Code | Added test tooling setup, guideline and deliverable tasks, a performance check; all 187 criteria now referenced; tasks accepted |
 
 ---
 
@@ -534,3 +535,47 @@ Next phase: `tasks.md`.
 - **Verified by search.** `@dnd-kit` appears 0 times. The move-notification text and "in-memory or test-database" are gone. `next/headers` now appears only in the sentence that forbids importing it. `CORS_ORIGINS` is configured in task 1.1 and updated in task 22.1.
 - **Why T1 and T2 matter.** Both were *additions* by the AI, not omissions. An invented dependency and an invented notification trigger would each have produced code that contradicts the accepted requirements while looking reasonable in review.
 - **Still open.** Test tooling setup, deliverable tasks and the 15 unreferenced criteria are handled in TR2.
+
+---
+
+## CL-14
+
+**Tasks TR2: test setup, deliverables and traceability, and accept the tasks**
+
+| Field | Value |
+| ----- | ----- |
+| Date | 2026-11-27 |
+| Artifact | `.kiro/specs/revotask-mvp/tasks.md` |
+| Tool | Claude Code (Kiro's free plan was out of credits; see [CL-13](#cl-13)) |
+| Trigger | Tasks review findings T8–T14 |
+| Prompt | TR2 in [tasks-v1-review.md](reviews/tasks-v1-review.md#tr2--test-setup-deliverables-and-traceability) |
+| Commits | before `6b59111` → after `98d46b7` |
+
+**Trigger.** The plan ran Jest and Playwright without ever installing or configuring them, had no task for any non-code deliverable, did not put the guidelines before the code, never measured the performance target, and left 15 acceptance criteria unreferenced.
+
+**Before → After.**
+
+| # | Before | After |
+| - | ------ | ----- |
+| T8 | Task 21 runs Jest, but nothing installs it; no component tests | Task 13.1 installs and configures Jest + React Testing Library and adds `"test": "jest"`; new task 13.6 tests `BaseButton`, `BaseBadge` and `BaseModal` |
+| T9 | Playwright specs with no setup and no test account | New task 23.0: install `@playwright/test`, `playwright.config.ts` with `baseURL` from `E2E_BASE_URL`, HTML reporter, a unique test user registered per run |
+| T10 | Specs in `e2e/` at the repo root | Specs in `frontend/e2e/` |
+| T11 | No deliverable tasks | New group 25: copy specs to `/specs`, Postman check of all 8 blueprints, Playwright report committed, README, violation report |
+| T12 | Guidelines not ordered before code | New task 0.1 at the top: author `/guidelines` before any code task |
+| T13 | REQ-19.1 (500 ms p95) never measured | New task 22.2: seed 200 cards on Railway, measure p95 |
+| T14 | 172 of 187 criteria referenced | 187 of 187 referenced |
+
+**Review of the result.**
+
+- **Verified by script.** 187 of 187 criteria are referenced by at least one task, with 0 references to nonexistent criteria. All 30 endpoints are present. All 55 sub-tasks appear in the dependency graph, and the graph has no task that is missing from the plan.
+- **Dependency graph repaired.** The new tasks were added to the wave list and the waves renumbered 0–41.
+
+**Status: tasks accepted.** Summary of the specification phase:
+
+| Document | Raw AI output | Accepted | Rounds |
+| -------- | ------------- | -------- | ------ |
+| `requirements.md` | 24 REQs, 119 criteria, 5 wrong paths | 32 REQs, 187 criteria | R1–R6 (Kiro) |
+| `design.md` | 7 runtime blockers, REQ-level traceability | 0 blockers, 187/187 criteria traced | DR1–DR5 (Kiro) |
+| `tasks.md` | 2 invented behaviors, 172/187 criteria referenced | 187/187 referenced, 30/30 endpoints | TR1–TR2 (Claude Code) |
+
+The accepted documents were copied to `/specs`. Next phase: steering guidelines, then code.

@@ -132,3 +132,6 @@ it. List every edit at the end.
 
 - **Tool change.** After the raw `tasks.md` was generated, Kiro's free plan reached its monthly usage limit ("You've reached your monthly usage limit", Kiro Free 0 / 50 credits, 2026-11-26). The TR1 prompt above could not be sent. From this round on, refinements are applied with **Claude Code** using the same prompts, and each is checked the same way.
 - **TR1** was applied on 2026-11-26 with Claude Code ([CHANGELOG CL-13](../CHANGELOG.md#cl-13)). All 7 items were applied.
+- **TR2** was applied on 2026-11-27 with Claude Code ([CHANGELOG CL-14](../CHANGELOG.md#cl-14)). All 7 items were applied. Re-running the coverage scripts: **187 of 187** criteria referenced by a task, **30 of 30** endpoints present, and all 55 sub-tasks appear in the dependency graph.
+
+**Final verdict: tasks ACCEPTED.** All 14 findings (T1–T14) are closed. The accepted `requirements.md`, `design.md` and `tasks.md` were copied to `/specs`. Next phase: steering guidelines (task 0.1), then code.
