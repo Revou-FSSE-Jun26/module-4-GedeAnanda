@@ -210,3 +210,9 @@ Design refinement round 4 — traceability and consistency. Fix exactly these:
 Change nothing else. If you notice any other problem, report it at the end instead of
 fixing it. List every edit at the end.
 ```
+
+**Round status (final):**
+
+- **DR5** was applied on 2026-11-26 ([CHANGELOG CL-12](../CHANGELOG.md#cl-12)). A one-line diff, re-checked with the coverage script: **187 of 187** criteria mapped exactly once.
+
+**Final verdict: design ACCEPTED.** All 23 findings (D1–D23) and the 3 follow-ups raised during the rounds are closed. Next phase: `tasks.md` (Kiro: Generate Task List).

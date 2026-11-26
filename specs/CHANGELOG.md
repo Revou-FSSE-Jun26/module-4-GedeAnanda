@@ -22,6 +22,7 @@ Raw AI output is committed **before** each refinement, so every entry can be ver
 | [CL-09](#cl-09) | `design.md` | DR1 | Kiro (Spec) | Fixed 8 blockers: error handlers, JWT error envelope, notification FK cascade, middleware location, Header on auth pages, repo roots, soft-delete eager loading |
 | [CL-10](#cl-10) | `design.md` | DR3 | Kiro (Spec) | Timezone-aware timestamps, FK indexes, `Column` → `BoardColumn`, Railway URL normalization, frontend `.env.example` |
 | [CL-11](#cl-11) | `design.md` | DR4 | Kiro (Spec) | Per-criterion traceability table, missing form components, `AppError` pattern, test-strategy and reference fixes |
+| [CL-12](#cl-12) | `design.md` | DR5 | Kiro (Spec) | Mapped the last unmapped criterion (REQ-2.6); design accepted with 187/187 criteria traced |
 
 ---
 
@@ -455,3 +456,43 @@ The FLOAT rebalance also had a client-side flaw: after a server rebalance, the b
 - **All 9 items applied**, each confirmed by searching the updated document.
 - **Coverage was verified, not trusted.** A script compared the 187 criteria in `requirements.md` with every range in the new table ([method](reviews/design-v1-review.md#traceability-coverage-check-script)). Result: **186 of 187** covered exactly once, 0 duplicates, 0 references to nonexistent criteria, and **REQ-2.6 missing** (the password-length `400` added in R6). Kiro's summary did not mention the gap.
 - **Fix.** A one-line refinement round, DR5, adds `6` to the REQ-2 API row.
+
+---
+
+## CL-12
+
+**Design DR5: close the last traceability gap, and accept the design**
+
+| Field | Value |
+| ----- | ----- |
+| Date | 2026-11-26 |
+| Artifact | `.kiro/specs/revotask-mvp/design.md` |
+| Tool | Kiro, Spec mode |
+| Trigger | The coverage script after DR4 ([CL-11](#cl-11)) |
+| Prompt | DR5 in [design-v1-review.md](reviews/design-v1-review.md#dr5--close-the-last-traceability-gap) |
+| Commits | before `2e79f87` → after `9fde0bf` |
+
+**Before.**
+
+> `| REQ-2 | 1–4 | User Registration — API | POST /api/auth/register (auth blueprint) |`
+
+REQ-2.6 (password shorter than 8 characters → `400`) mapped to nothing.
+
+**After.**
+
+> `| REQ-2 | 1–4, 6 | User Registration — API | POST /api/auth/register (auth blueprint) + RegisterSchema validate.Length(min=8) |`
+
+**Review of the result.**
+
+- **Verified.** The diff is exactly one line. Re-running the coverage script: **187 of 187 criteria mapped exactly once**, 0 duplicates, 0 references to nonexistent criteria.
+
+**Status: design accepted.** Summary of the design phase:
+
+| | v1 (raw Kiro) | Accepted |
+| - | ------------- | -------- |
+| Defects that would break the running app or a graded E2E scenario | 7 (D1–D7) | 0 |
+| Response bodies defined | 0 (placeholders) | 7 dump schemas |
+| Traceability | 32 REQ-level rows | 187/187 criteria mapped, script-verified |
+| Refinement rounds | n/a | 5 (DR1–DR5, [CL-08](#cl-08) to CL-12) |
+
+Next phase: `tasks.md`.
