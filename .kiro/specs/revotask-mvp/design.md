@@ -50,7 +50,7 @@ All models share a UUID primary key, `created_at`, and `updated_at`.
 ```python
 # app/models/user.py
 import uuid
-from datetime import datetime
+from datetime import datetime, timezone
 from werkzeug.security import generate_password_hash, check_password_hash
 from app.extensions import db
 
@@ -61,8 +61,8 @@ class User(db.Model):
     name         = db.Column(db.String(100), nullable=False)
     email        = db.Column(db.String(255), unique=True, nullable=False)
     password_hash = db.Column(db.String(255), nullable=False)
-    created_at   = db.Column(db.DateTime, default=datetime.utcnow)
-    updated_at   = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+    created_at   = db.Column(db.DateTime(timezone=True), default=lambda: datetime.now(timezone.utc))
+    updated_at   = db.Column(db.DateTime(timezone=True), default=lambda: datetime.now(timezone.utc), onupdate=lambda: datetime.now(timezone.utc))
 
     board_memberships = db.relationship("BoardMember", back_populates="user", cascade="all, delete-orphan")
     created_cards     = db.relationship("Card", foreign_keys="Card.created_by", back_populates="creator")
@@ -80,7 +80,7 @@ class User(db.Model):
 ```python
 # app/models/board.py
 import uuid
-from datetime import datetime
+from datetime import datetime, timezone
 from app.extensions import db
 
 class Board(db.Model):
@@ -89,19 +89,19 @@ class Board(db.Model):
     id         = db.Column(db.UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
     name       = db.Column(db.String(100), nullable=False)
     owner_id   = db.Column(db.UUID(as_uuid=True), db.ForeignKey("users.id"), nullable=False)
-    created_at = db.Column(db.DateTime, default=datetime.utcnow)
-    updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+    created_at = db.Column(db.DateTime(timezone=True), default=lambda: datetime.now(timezone.utc))
+    updated_at = db.Column(db.DateTime(timezone=True), default=lambda: datetime.now(timezone.utc), onupdate=lambda: datetime.now(timezone.utc))
 
     owner   = db.relationship("User", foreign_keys=[owner_id])
     members = db.relationship("BoardMember", back_populates="board", cascade="all, delete-orphan")
-    columns = db.relationship("Column", back_populates="board", cascade="all, delete-orphan",
-                               order_by="Column.order")
+    columns = db.relationship("BoardColumn", back_populates="board", cascade="all, delete-orphan",
+                               order_by="BoardColumn.order")
 ```
 
 ```python
 # app/models/board_member.py
 import uuid
-from datetime import datetime
+from datetime import datetime, timezone
 from app.extensions import db
 
 class BoardMember(db.Model):
@@ -110,10 +110,10 @@ class BoardMember(db.Model):
 
     id         = db.Column(db.UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
     board_id   = db.Column(db.UUID(as_uuid=True), db.ForeignKey("boards.id"), nullable=False)
-    user_id    = db.Column(db.UUID(as_uuid=True), db.ForeignKey("users.id"), nullable=False)
+    user_id    = db.Column(db.UUID(as_uuid=True), db.ForeignKey("users.id"), nullable=False, index=True)  # NFR-2
     role       = db.Column(db.String(10), nullable=False)   # "admin" | "member"
-    created_at = db.Column(db.DateTime, default=datetime.utcnow)
-    updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+    created_at = db.Column(db.DateTime(timezone=True), default=lambda: datetime.now(timezone.utc))
+    updated_at = db.Column(db.DateTime(timezone=True), default=lambda: datetime.now(timezone.utc), onupdate=lambda: datetime.now(timezone.utc))
 
     board = db.relationship("Board", back_populates="members")
     user  = db.relationship("User", back_populates="board_memberships")
@@ -122,19 +122,19 @@ class BoardMember(db.Model):
 ```python
 # app/models/column.py
 import uuid
-from datetime import datetime
+from datetime import datetime, timezone
 from app.extensions import db
 
-class Column(db.Model):
+class BoardColumn(db.Model):
     __tablename__ = "columns"
 
     id         = db.Column(db.UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
-    board_id   = db.Column(db.UUID(as_uuid=True), db.ForeignKey("boards.id"), nullable=False)
+    board_id   = db.Column(db.UUID(as_uuid=True), db.ForeignKey("boards.id"), nullable=False, index=True)  # NFR-2
     name       = db.Column(db.String(100), nullable=False)
     order      = db.Column(db.Float, nullable=False)
     is_done    = db.Column(db.Boolean, default=False, nullable=False)
-    created_at = db.Column(db.DateTime, default=datetime.utcnow)
-    updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+    created_at = db.Column(db.DateTime(timezone=True), default=lambda: datetime.now(timezone.utc))
+    updated_at = db.Column(db.DateTime(timezone=True), default=lambda: datetime.now(timezone.utc), onupdate=lambda: datetime.now(timezone.utc))
 
     board = db.relationship("Board", back_populates="columns")
     cards = db.relationship("Card", back_populates="column", cascade="all, delete-orphan",
@@ -144,27 +144,27 @@ class Column(db.Model):
 ```python
 # app/models/card.py
 import uuid
-from datetime import datetime
+from datetime import datetime, timezone
 from app.extensions import db
 
 class Card(db.Model):
     __tablename__ = "cards"
 
     id           = db.Column(db.UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
-    column_id    = db.Column(db.UUID(as_uuid=True), db.ForeignKey("columns.id"), nullable=False)
+    column_id    = db.Column(db.UUID(as_uuid=True), db.ForeignKey("columns.id"), nullable=False, index=True)  # NFR-2
     title        = db.Column(db.String(200), nullable=False)
     description  = db.Column(db.String(5000), nullable=True)
-    assignee_id  = db.Column(db.UUID(as_uuid=True), db.ForeignKey("users.id"), nullable=True)
+    assignee_id  = db.Column(db.UUID(as_uuid=True), db.ForeignKey("users.id"), nullable=True, index=True)  # NFR-2
     created_by   = db.Column(db.UUID(as_uuid=True), db.ForeignKey("users.id"), nullable=False)
     due_date     = db.Column(db.Date, nullable=True)
     priority     = db.Column(db.String(10), default="medium", nullable=False)  # low|medium|high
     order        = db.Column(db.Float, nullable=False)
-    completed_at = db.Column(db.DateTime, nullable=True)
-    deleted_at   = db.Column(db.DateTime, nullable=True)
-    created_at   = db.Column(db.DateTime, default=datetime.utcnow)
-    updated_at   = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+    completed_at = db.Column(db.DateTime(timezone=True), nullable=True)
+    deleted_at   = db.Column(db.DateTime(timezone=True), nullable=True)
+    created_at   = db.Column(db.DateTime(timezone=True), default=lambda: datetime.now(timezone.utc))
+    updated_at   = db.Column(db.DateTime(timezone=True), default=lambda: datetime.now(timezone.utc), onupdate=lambda: datetime.now(timezone.utc))
 
-    column   = db.relationship("Column", back_populates="cards")
+    column   = db.relationship("BoardColumn", back_populates="cards")
     creator  = db.relationship("User", foreign_keys=[created_by], back_populates="created_cards")
     assignee = db.relationship("User", foreign_keys=[assignee_id], back_populates="assigned_cards")
     comments = db.relationship("Comment", back_populates="card", cascade="all, delete-orphan")
@@ -173,18 +173,18 @@ class Card(db.Model):
 ```python
 # app/models/comment.py
 import uuid
-from datetime import datetime
+from datetime import datetime, timezone
 from app.extensions import db
 
 class Comment(db.Model):
     __tablename__ = "comments"
 
     id         = db.Column(db.UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
-    card_id    = db.Column(db.UUID(as_uuid=True), db.ForeignKey("cards.id"), nullable=False)
+    card_id    = db.Column(db.UUID(as_uuid=True), db.ForeignKey("cards.id"), nullable=False, index=True)  # NFR-2
     author_id  = db.Column(db.UUID(as_uuid=True), db.ForeignKey("users.id"), nullable=False)
     content    = db.Column(db.String(2000), nullable=False)
-    created_at = db.Column(db.DateTime, default=datetime.utcnow)
-    updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+    created_at = db.Column(db.DateTime(timezone=True), default=lambda: datetime.now(timezone.utc))
+    updated_at = db.Column(db.DateTime(timezone=True), default=lambda: datetime.now(timezone.utc), onupdate=lambda: datetime.now(timezone.utc))
 
     card   = db.relationship("Card", back_populates="comments")
     author = db.relationship("User", back_populates="comments")
@@ -193,7 +193,7 @@ class Comment(db.Model):
 ```python
 # app/models/notification.py
 import uuid
-from datetime import datetime
+from datetime import datetime, timezone
 from app.extensions import db
 
 NOTIFICATION_TYPES = ("card_assigned", "comment_added", "board_invite")
@@ -202,14 +202,14 @@ class Notification(db.Model):
     __tablename__ = "notifications"
 
     id         = db.Column(db.UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
-    user_id    = db.Column(db.UUID(as_uuid=True), db.ForeignKey("users.id"), nullable=False)
+    user_id    = db.Column(db.UUID(as_uuid=True), db.ForeignKey("users.id"), nullable=False, index=True)  # NFR-2
     type       = db.Column(db.String(20), nullable=False)   # card_assigned | comment_added | board_invite
     message    = db.Column(db.String(500), nullable=False)
     is_read    = db.Column(db.Boolean, default=False, nullable=False)
     card_id    = db.Column(db.UUID(as_uuid=True), db.ForeignKey("cards.id", ondelete="SET NULL"), nullable=True)
     board_id   = db.Column(db.UUID(as_uuid=True), db.ForeignKey("boards.id", ondelete="SET NULL"), nullable=True)
-    created_at = db.Column(db.DateTime, default=datetime.utcnow)
-    updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+    created_at = db.Column(db.DateTime(timezone=True), default=lambda: datetime.now(timezone.utc))
+    updated_at = db.Column(db.DateTime(timezone=True), default=lambda: datetime.now(timezone.utc), onupdate=lambda: datetime.now(timezone.utc))
 
     user  = db.relationship("User", back_populates="notifications")
     card  = db.relationship("Card")
@@ -566,14 +566,16 @@ class Notification(db.Model):
 backend/
 ├── app/
 │   ├── __init__.py               # App factory: create_app(), registers extensions, blueprints, health endpoint, error handlers
-│   ├── config.py                 # Config class reading DATABASE_URL, SECRET_KEY, JWT_SECRET_KEY, CORS_ORIGINS from env
+│   ├── config.py                 # Config class; normalises DATABASE_URL by replacing a leading "postgres://" with
+│   │                             # "postgresql://" (Railway compatibility); required env vars: DATABASE_URL,
+│   │                             # SECRET_KEY, JWT_SECRET_KEY, CORS_ORIGINS, FLASK_ENV
 │   ├── extensions.py             # Shared extension instances: db, migrate, jwt, cors
 │   ├── models/
 │   │   ├── __init__.py           # Re-exports all models so Flask-Migrate can discover them
 │   │   ├── user.py               # User model: id, name, email, password_hash, set_password(), check_password()
 │   │   ├── board.py              # Board model: id, name, owner_id; relationship to BoardMember and Column
 │   │   ├── board_member.py       # BoardMember model: board_id, user_id, role; unique constraint (board_id, user_id)
-│   │   ├── column.py             # Column model: id, board_id, name, order (Float), is_done
+│   │   ├── column.py             # BoardColumn model (class name) with __tablename__ = "columns": id, board_id, name, order (Float), is_done
 │   │   ├── card.py               # Card model: id, column_id, title, description, priority, order (Float), completed_at, deleted_at
 │   │   ├── comment.py            # Comment model: id, card_id, author_id, content (max 2000)
 │   │   └── notification.py       # Notification model: id, user_id, type, message, is_read, card_id (nullable), board_id (nullable)
@@ -706,6 +708,9 @@ context/
 types/
 └── index.ts                  # TypeScript interfaces: User, Board, BoardMember, Column, Card, Comment,
                               # Notification, ApiError, PaginatedResponse<T>
+.env.example                  # Template listing required frontend environment variables (no real values):
+                              # NEXT_PUBLIC_API_BASE_URL (used by Client Components via lib/apiClient)
+                              # API_BASE_URL (used by Server Components via lib/apiClient)
 ```
 
 ---
