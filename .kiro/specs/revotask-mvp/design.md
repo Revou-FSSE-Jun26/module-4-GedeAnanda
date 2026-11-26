@@ -206,8 +206,8 @@ class Notification(db.Model):
     type       = db.Column(db.String(20), nullable=False)   # card_assigned | comment_added | board_invite
     message    = db.Column(db.String(500), nullable=False)
     is_read    = db.Column(db.Boolean, default=False, nullable=False)
-    card_id    = db.Column(db.UUID(as_uuid=True), db.ForeignKey("cards.id"), nullable=True)
-    board_id   = db.Column(db.UUID(as_uuid=True), db.ForeignKey("boards.id"), nullable=True)
+    card_id    = db.Column(db.UUID(as_uuid=True), db.ForeignKey("cards.id", ondelete="SET NULL"), nullable=True)
+    board_id   = db.Column(db.UUID(as_uuid=True), db.ForeignKey("boards.id", ondelete="SET NULL"), nullable=True)
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
     updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
 
@@ -563,58 +563,62 @@ class Notification(db.Model):
 ## Backend Folder Structure
 
 ```
-app/
-├── __init__.py               # App factory: create_app(), registers extensions, blueprints, health endpoint, error handlers
-├── config.py                 # Config class reading DATABASE_URL, SECRET_KEY, JWT_SECRET_KEY, CORS_ORIGINS from env
-├── extensions.py             # Shared extension instances: db, migrate, jwt, cors
-├── models/
-│   ├── __init__.py           # Re-exports all models so Flask-Migrate can discover them
-│   ├── user.py               # User model: id, name, email, password_hash, set_password(), check_password()
-│   ├── board.py              # Board model: id, name, owner_id; relationship to BoardMember and Column
-│   ├── board_member.py       # BoardMember model: board_id, user_id, role; unique constraint (board_id, user_id)
-│   ├── column.py             # Column model: id, board_id, name, order (Float), is_done
-│   ├── card.py               # Card model: id, column_id, title, description, priority, order (Float), completed_at, deleted_at
-│   ├── comment.py            # Comment model: id, card_id, author_id, content (max 2000)
-│   └── notification.py       # Notification model: id, user_id, type, message, is_read, card_id (nullable), board_id (nullable)
-├── blueprints/
-│   ├── auth/
-│   │   ├── routes.py         # POST /api/auth/register, POST /api/auth/login — parses request, calls service, returns JSON
-│   │   ├── service.py        # register_user(), login_user() — hashing, JWT creation, duplicate-email check
-│   │   └── schema.py         # RegisterSchema, LoginSchema
-│   ├── boards/
-│   │   ├── routes.py         # CRUD /api/boards, /api/boards/<id>/members — HTTP layer only
-│   │   ├── service.py        # create_board(), list_boards(), get_board(), rename_board(), delete_board(),
-│   │   │                     # list_members(), add_member(), update_member_role(), remove_member()
-│   │   └── schema.py         # BoardSchema, MemberAddSchema, MemberRoleSchema
-│   ├── columns/
-│   │   ├── routes.py         # POST /api/boards/<id>/columns, PATCH /api/columns/<id>, DELETE, PATCH reorder
-│   │   ├── service.py        # create_column(), update_column(), delete_column(), reorder_column()
-│   │   │                     # Implements FLOAT order strategy and rebalance logic
-│   │   └── schema.py         # ColumnSchema, ColumnReorderSchema
-│   ├── cards/
-│   │   ├── routes.py         # GET /api/cards, POST /api/columns/<id>/cards, PATCH, DELETE, PATCH position
-│   │   ├── service.py        # list_cards(), create_card(), update_card(), soft_delete_card(), move_card()
-│   │   │                     # Handles completed_at lifecycle and FLOAT order/rebalance; triggers notifications
-│   │   └── schema.py         # CardSchema, CardPositionSchema, CardQuerySchema
-│   ├── comments/
-│   │   ├── routes.py         # POST/GET /api/cards/<id>/comments, PATCH/DELETE /api/comments/<id>
-│   │   ├── service.py        # create_comment(), list_comments(), update_comment(), delete_comment()
-│   │   │                     # Triggers comment_added notification
-│   │   └── schema.py         # CommentSchema
-│   ├── notifications/
-│   │   ├── routes.py         # GET /api/notifications, PATCH /api/notifications/<id>/read
-│   │   ├── service.py        # list_notifications(), mark_as_read(); create_notification() used by other services
-│   │   └── schema.py         # NotificationQuerySchema
-│   ├── analytics/
-│   │   ├── routes.py         # GET /api/boards/<id>/analytics
-│   │   ├── service.py        # get_analytics() — SQLAlchemy joins, no N+1 queries
-│   │   └── schema.py         # AnalyticsSchema
-│   └── users/
-│       ├── routes.py         # GET /api/users/me, PATCH /api/users/me
-│       ├── service.py        # get_current_user(), update_user() — rejects password field, checks email uniqueness
-│       └── schema.py         # UserSchema (response, no password_hash), UserUpdateSchema
-migrations/                   # Flask-Migrate auto-generated migration scripts
-tests/
+backend/
+├── app/
+│   ├── __init__.py               # App factory: create_app(), registers extensions, blueprints, health endpoint, error handlers
+│   ├── config.py                 # Config class reading DATABASE_URL, SECRET_KEY, JWT_SECRET_KEY, CORS_ORIGINS from env
+│   ├── extensions.py             # Shared extension instances: db, migrate, jwt, cors
+│   ├── models/
+│   │   ├── __init__.py           # Re-exports all models so Flask-Migrate can discover them
+│   │   ├── user.py               # User model: id, name, email, password_hash, set_password(), check_password()
+│   │   ├── board.py              # Board model: id, name, owner_id; relationship to BoardMember and Column
+│   │   ├── board_member.py       # BoardMember model: board_id, user_id, role; unique constraint (board_id, user_id)
+│   │   ├── column.py             # Column model: id, board_id, name, order (Float), is_done
+│   │   ├── card.py               # Card model: id, column_id, title, description, priority, order (Float), completed_at, deleted_at
+│   │   ├── comment.py            # Comment model: id, card_id, author_id, content (max 2000)
+│   │   └── notification.py       # Notification model: id, user_id, type, message, is_read, card_id (nullable), board_id (nullable)
+│   └── blueprints/
+│       ├── auth/
+│       │   ├── routes.py         # POST /api/auth/register, POST /api/auth/login — parses request, calls service, returns JSON
+│       │   ├── service.py        # register_user(), login_user() — hashing, JWT creation, duplicate-email check
+│       │   └── schema.py         # RegisterSchema, LoginSchema
+│       ├── boards/
+│       │   ├── routes.py         # CRUD /api/boards, /api/boards/<id>/members — HTTP layer only
+│       │   ├── service.py        # create_board(), list_boards(), get_board(), rename_board(), delete_board(),
+│       │   │                     # list_members(), add_member(), update_member_role(), remove_member()
+│       │   │                     # get_board() uses selectinload(Board.columns).selectinload(Column.cards)
+│       │   │                     # with an AND filter Card.deleted_at.is_(None) so soft-deleted cards
+│       │   │                     # are excluded at the ORM level, not filtered after loading
+│       │   └── schema.py         # BoardSchema, MemberAddSchema, MemberRoleSchema
+│       ├── columns/
+│       │   ├── routes.py         # POST /api/boards/<id>/columns, PATCH /api/columns/<id>, DELETE, PATCH reorder
+│       │   ├── service.py        # create_column(), update_column(), delete_column(), reorder_column()
+│       │   │                     # Implements FLOAT order strategy and rebalance logic
+│       │   └── schema.py         # ColumnSchema, ColumnReorderSchema
+│       ├── cards/
+│       │   ├── routes.py         # GET /api/cards, POST /api/columns/<id>/cards, PATCH, DELETE, PATCH position
+│       │   ├── service.py        # list_cards(), create_card(), update_card(), soft_delete_card(), move_card()
+│       │   │                     # Handles completed_at lifecycle and FLOAT order/rebalance; triggers notifications
+│       │   └── schema.py         # CardSchema, CardPositionSchema, CardQuerySchema
+│       ├── comments/
+│       │   ├── routes.py         # POST/GET /api/cards/<id>/comments, PATCH/DELETE /api/comments/<id>
+│       │   ├── service.py        # create_comment(), list_comments(), update_comment(), delete_comment()
+│       │   │                     # Triggers comment_added notification
+│       │   └── schema.py         # CommentSchema
+│       ├── notifications/
+│       │   ├── routes.py         # GET /api/notifications, PATCH /api/notifications/<id>/read
+│       │   ├── service.py        # list_notifications(), mark_as_read(); create_notification() used by other services
+│       │   └── schema.py         # NotificationQuerySchema
+│       ├── analytics/
+│       │   ├── routes.py         # GET /api/boards/<id>/analytics
+│       │   ├── service.py        # get_analytics() — SQLAlchemy joins, no N+1 queries
+│       │   └── schema.py         # AnalyticsSchema
+│       └── users/
+│           ├── routes.py         # GET /api/users/me, PATCH /api/users/me
+│           ├── service.py        # get_current_user(), update_user() — rejects password field, checks email uniqueness
+│           └── schema.py         # UserSchema (response, no password_hash), UserUpdateSchema
+├── migrations/                   # Flask-Migrate auto-generated migration scripts
+├── tests/
 │   ├── conftest.py           # pytest fixtures: app, client, db session, test users, auth headers
 │   ├── test_auth.py          # Register and login: success, 400, 409, 401
 │   ├── test_boards.py        # Board CRUD and member management: success paths + 400/401/403/404/409
@@ -624,9 +628,9 @@ tests/
 │   ├── test_notifications.py # List and mark-read: success + 400/401/404
 │   ├── test_analytics.py     # Analytics: success + 401/403/404
 │   └── test_users.py         # Profile get/update: success + 400/401/409
-wsgi.py                       # Gunicorn entry point: from app import create_app; app = create_app()
-requirements.txt              # All Python dependencies
-.env.example                  # Template listing required environment variables (no real values)
+├── wsgi.py                       # Gunicorn entry point: from app import create_app; app = create_app()
+├── requirements.txt              # All Python dependencies
+└── .env.example                  # Template listing required environment variables (no real values)
 ```
 
 ---
@@ -634,25 +638,30 @@ requirements.txt              # All Python dependencies
 ## Frontend Folder Structure (Next.js App Router)
 
 ```
-app/
-├── layout.tsx                # Root layout: wraps children with AuthContextProvider, Header, and react-hot-toast Toaster
-├── middleware.ts             # Edge middleware: reads revotask_token cookie; redirects unauthenticated users
-│                             # from any route except /login and /register to /login
-├── page.tsx                  # Dashboard — Server Component; fetches GET /api/boards server-side via apiClient
-├── login/
-│   └── page.tsx              # Login form — Client Component; controlled inputs; stores token on success
-├── register/
-│   └── page.tsx              # Register form — Client Component; client-side validation before API call
-├── boards/
-│   └── [id]/
-│       └── page.tsx          # Board detail — Server Component; fetches GET /api/boards/<id> server-side;
-│                             # renders KanbanBoard client island
-├── my-tasks/
-│   └── page.tsx              # My Tasks — Server Component or Client Component; calls GET /api/cards?assignee=me;
-│                             # groups cards by board name; uses BaseBadge for priority
-└── profile/
-    └── page.tsx              # Profile — Client Component; controlled inputs pre-filled from AuthContext;
-                              # sends PATCH /api/users/me; shows success toast
+frontend/
+├── middleware.ts             # Next.js Edge middleware (Next.js 16+: proxy.ts). Reads revotask_token cookie;
+│                             # redirects unauthenticated users from protected routes to /login.
+│                             # /login and /register are explicitly excluded from protection.
+├── app/
+│   ├── layout.tsx            # Root layout: wraps children with AuthContextProvider and react-hot-toast Toaster only
+│   ├── login/
+│   │   └── page.tsx          # Login form — Client Component; controlled inputs; stores token on success
+│   ├── register/
+│   │   └── page.tsx          # Register form — Client Component; client-side validation before API call
+│   └── (app)/
+│       ├── layout.tsx        # Authenticated route-group layout: renders Header (with NotificationBell);
+│       │                     # wraps /, /boards/[id], /my-tasks and /profile — never /login or /register
+│       ├── page.tsx          # Dashboard — Server Component; fetches GET /api/boards server-side via apiClient
+│       ├── boards/
+│       │   └── [id]/
+│       │       └── page.tsx  # Board detail — Server Component; fetches GET /api/boards/<id> server-side;
+│       │                     # renders KanbanBoard client island
+│       ├── my-tasks/
+│       │   └── page.tsx      # My Tasks — Server Component or Client Component; calls GET /api/cards?assignee=me;
+│       │                     # groups cards by board name; uses BaseBadge for priority
+│       └── profile/
+│           └── page.tsx      # Profile — Client Component; controlled inputs pre-filled from AuthContext;
+│                             # sends PATCH /api/users/me; shows success toast
 
 components/
 ├── shared/
@@ -1048,10 +1057,10 @@ The app factory registers the following error handlers in `app/__init__.py`:
 
 | Scenario | Handler | Response |
 |----------|---------|----------|
-| Marshmallow `ValidationError` | `@app.errorhandler(422)` | `400 { "error": "<first validation message>" }` |
+| Marshmallow `ValidationError` | `@app.errorhandler(ValidationError)` — imported from `marshmallow`; plain Marshmallow raises this directly, not HTTP 422 | `400 { "error": "<first validation message>" }` |
 | `werkzeug.exceptions.NotFound` | `@app.errorhandler(404)` | `404 { "error": "not found" }` |
-| `werkzeug.exceptions.MethodNotAllowed` | `@app.errorhandler(405)` | `405 { "error": "method not allowed" }` |
-| `flask_jwt_extended.exceptions.*` | JWT error handlers | `401 { "error": "missing or invalid token" }` |
+| `werkzeug.exceptions.HTTPException` | `@app.errorhandler(HTTPException)` — catches all Werkzeug HTTP errors including 400 (malformed JSON body), 405 (method not allowed), 415 (unsupported media type); prevents the catch-all `Exception` handler from converting them to 500 | `e.code { "error": e.description }` |
+| Flask-JWT-Extended loaders | `@jwt.unauthorized_loader` (missing token) · `@jwt.invalid_token_loader` (malformed/wrong-type token) · `@jwt.expired_token_loader` (token past expiry) — all registered via `jwt = JWTManager(app)` in `extensions.py`; the library default of `{ "msg": ... }` and `422` for malformed tokens is overridden by these loaders | `401 { "error": "missing or invalid token" }` |
 | Unhandled `Exception` | `@app.errorhandler(Exception)` | `500 { "error": "internal server error" }` — stack trace never exposed; `debug=False` in production |
 
 All service-layer errors are raised as Python exceptions with an HTTP status code attached; `routes.py` catches them and returns the appropriate JSON envelope.
@@ -1118,35 +1127,35 @@ Runs against the live Vercel + Railway deployment. Uses `role` and `data-testid`
 
 | REQ | Requirement Title | Implemented By |
 |-----|-------------------|----------------|
-| REQ-1 | Health Check | `GET /api/health` (app factory `app/__init__.py`) |
-| REQ-2 | User Registration | `POST /api/auth/register` (auth blueprint) + `app/register/page.tsx` |
-| REQ-3 | User Login | `POST /api/auth/login` (auth blueprint) + `app/login/page.tsx` + `lib/auth.ts` |
-| REQ-4 | Protected Routes and Logout | `app/middleware.ts` + `context/AuthContext.tsx` + `Header.tsx` logout action |
-| REQ-5 | Board Management | `POST/GET/PATCH/DELETE /api/boards` (boards blueprint) + `app/page.tsx` (dashboard) |
-| REQ-6 | Column Management | `POST /api/boards/<id>/columns`, `PATCH /api/columns/<id>`, `DELETE /api/columns/<id>`, `PATCH /api/boards/<id>/columns/reorder` (columns blueprint) + `components/board/ColumnList.tsx` |
-| REQ-7 | Card Creation and Editing | `POST /api/columns/<id>/cards`, `PATCH /api/cards/<id>` (cards blueprint) + `components/board/CardDetailModal.tsx` |
+| REQ-1 | Health Check | `GET /api/health` (app factory `backend/app/__init__.py`) |
+| REQ-2 | User Registration | `POST /api/auth/register` (auth blueprint) + `frontend/app/register/page.tsx` |
+| REQ-3 | User Login | `POST /api/auth/login` (auth blueprint) + `frontend/app/login/page.tsx` + `frontend/lib/auth.ts` |
+| REQ-4 | Protected Routes and Logout | `frontend/middleware.ts` + `frontend/context/AuthContext.tsx` + `frontend/components/Header.tsx` logout action |
+| REQ-5 | Board Management | `POST/GET/PATCH/DELETE /api/boards` (boards blueprint) + `frontend/app/(app)/page.tsx` (dashboard) |
+| REQ-6 | Column Management | `POST /api/boards/<id>/columns`, `PATCH /api/columns/<id>`, `DELETE /api/columns/<id>`, `PATCH /api/boards/<id>/columns/reorder` (columns blueprint) + `frontend/components/board/ColumnList.tsx` |
+| REQ-7 | Card Creation and Editing | `POST /api/columns/<id>/cards`, `PATCH /api/cards/<id>` (cards blueprint) + `frontend/components/board/CardDetailModal.tsx` |
 | REQ-8 | Card Soft-Delete | `DELETE /api/cards/<id>` (cards blueprint `service.py` sets `deleted_at`) |
-| REQ-9 | Card Move and Position | `PATCH /api/cards/<id>/position` (cards blueprint) + `hooks/useDragAndDrop.ts` + `components/board/CardDetailModal.tsx` "Move to column" select |
-| REQ-10 | Comments | `POST/GET /api/cards/<id>/comments`, `PATCH/DELETE /api/comments/<id>` (comments blueprint) + `components/board/CommentList.tsx` |
-| REQ-11 | Notifications | `GET /api/notifications`, `PATCH /api/notifications/<id>/read` (notifications blueprint) + `hooks/useNotifications.ts` + `components/notifications/NotificationBell.tsx` |
-| REQ-12 | My Tasks | `GET /api/cards?assignee=me` (cards blueprint) + `app/my-tasks/page.tsx` |
-| REQ-13 | Card Search | `GET /api/cards?board_id=<uuid>&q=<text>` (cards blueprint) + `components/board/KanbanBoard.tsx` search input (300 ms debounce) |
-| REQ-14 | User Profile | `GET/PATCH /api/users/me` (users blueprint) + `app/profile/page.tsx` |
+| REQ-9 | Card Move and Position | `PATCH /api/cards/<id>/position` (cards blueprint) + `frontend/hooks/useDragAndDrop.ts` + `frontend/components/board/CardDetailModal.tsx` "Move to column" select |
+| REQ-10 | Comments | `POST/GET /api/cards/<id>/comments`, `PATCH/DELETE /api/comments/<id>` (comments blueprint) + `frontend/components/board/CommentList.tsx` |
+| REQ-11 | Notifications | `GET /api/notifications`, `PATCH /api/notifications/<id>/read` (notifications blueprint) + `frontend/hooks/useNotifications.ts` + `frontend/components/notifications/NotificationBell.tsx` |
+| REQ-12 | My Tasks | `GET /api/cards?assignee=me` (cards blueprint) + `frontend/app/(app)/my-tasks/page.tsx` |
+| REQ-13 | Card Search | `GET /api/cards?board_id=<uuid>&q=<text>` (cards blueprint) + `frontend/components/board/KanbanBoard.tsx` search input (300 ms debounce) |
+| REQ-14 | User Profile | `GET/PATCH /api/users/me` (users blueprint) + `frontend/app/(app)/profile/page.tsx` |
 | REQ-15 | Board Analytics | `GET /api/boards/<id>/analytics` (analytics blueprint `service.py` with SQLAlchemy joins) |
 | REQ-16 | Member Access Management | `GET/POST/PATCH/DELETE /api/boards/<id>/members` (boards blueprint) |
 | REQ-17 | API Response Envelope | All blueprints + app factory error handlers enforce `{ "data": ... }` / `{ "error": "..." }` |
-| REQ-18 | Security | `app/config.py` (env vars, CORS), `app/extensions.py` (Flask-JWT-Extended), service layer authorization checks in every blueprint's `service.py` |
-| REQ-19 | Performance | `boards/service.py:get_board()` eager-loads columns and cards (SQLAlchemy `joinedload`); `hooks/useDragAndDrop.ts` optimistic update |
-| REQ-20 | Responsiveness | Tailwind CSS responsive utilities across all page and component files; `app/boards/[id]/page.tsx` horizontal scroll |
-| REQ-21 | Reliability | `hooks/useDragAndDrop.ts` rollback on error; `app/__init__.py` production error handler; `app/config.py` `DEBUG=False` |
-| REQ-22 | Maintainability | Blueprint folder structure (`routes.py`/`service.py`/`schema.py`); `components/shared/` reuse; `tsconfig.json` strict mode |
+| REQ-18 | Security | `backend/app/config.py` (env vars, CORS), `backend/app/extensions.py` (Flask-JWT-Extended), service layer authorization checks in every blueprint's `service.py` |
+| REQ-19 | Performance | `backend/boards/service.py:get_board()` uses `selectinload(Board.columns).selectinload(Column.cards.and_(Card.deleted_at.is_(None)))` — `selectinload` avoids the Cartesian product that `joinedload` produces for two nested one-to-many relationships; the `.and_(...)` filter excludes soft-deleted cards at the ORM level before they reach Python; `frontend/hooks/useDragAndDrop.ts` handles optimistic update on the client |
+| REQ-20 | Responsiveness | Tailwind CSS responsive utilities across all page and component files; `frontend/app/(app)/boards/[id]/page.tsx` horizontal scroll |
+| REQ-21 | Reliability | `frontend/hooks/useDragAndDrop.ts` rollback on error; `backend/app/__init__.py` production error handler; `backend/app/config.py` `DEBUG=False` |
+| REQ-22 | Maintainability | Blueprint folder structure (`routes.py`/`service.py`/`schema.py`); `frontend/components/shared/` reuse; `frontend/tsconfig.json` strict mode |
 | REQ-23 | Testability | `tests/` pytest suite; `hooks/` Jest tests; Playwright E2E suite (see Testing Strategy) |
-| REQ-24 | Accessibility | `components/shared/BaseModal.tsx` Escape key + focus return; `components/shared/BaseBadge.tsx` text + colour; all form inputs in page files have `<label>` elements |
-| REQ-25 | Registration Page | `app/register/page.tsx` — controlled inputs, client-side validation (name required, valid email, password ≥ 8 chars), inline error display, calls `POST /api/auth/register` |
-| REQ-26 | Dashboard Page | `app/page.tsx` — Next.js Server Component; fetches `GET /api/boards`; renders board list or empty state; create-board action calls `POST /api/boards` |
-| REQ-27 | Board Detail Page | `app/boards/[id]/page.tsx` — Server Component; fetches `GET /api/boards/<id>`; `components/board/KanbanBoard.tsx` client island for drag-and-drop, search, add-column, add-card, `CardDetailModal` |
-| REQ-28 | Card Detail Modal | `components/board/CardDetailModal.tsx` inside `components/shared/BaseModal.tsx`; editable fields; "Move to column" select; composes `CommentList.tsx`; comment form |
-| REQ-29 | Header Component | `components/Header.tsx` — navigation links, `NotificationBell.tsx`, logout; `hooks/useNotifications.ts` feeds bell count |
-| REQ-30 | useErrorHandler Hook | `hooks/useErrorHandler.ts` |
-| REQ-31 | lib/apiClient Module | `lib/apiClient.ts` + `lib/errors.ts` + `lib/toast.ts` |
-| REQ-32 | Shared UI Components | `components/shared/BaseButton.tsx`, `components/shared/BaseBadge.tsx`, `components/shared/BaseModal.tsx` |
+| REQ-24 | Accessibility | `frontend/components/shared/BaseModal.tsx` Escape key + focus return; `frontend/components/shared/BaseBadge.tsx` text + colour; all form inputs in page files have `<label>` elements |
+| REQ-25 | Registration Page | `frontend/app/register/page.tsx` — controlled inputs, client-side validation (name required, valid email, password ≥ 8 chars), inline error display, calls `POST /api/auth/register` |
+| REQ-26 | Dashboard Page | `frontend/app/(app)/page.tsx` — Next.js Server Component; fetches `GET /api/boards`; renders board list or empty state; create-board action calls `POST /api/boards` |
+| REQ-27 | Board Detail Page | `frontend/app/(app)/boards/[id]/page.tsx` — Server Component; fetches `GET /api/boards/<id>`; `frontend/components/board/KanbanBoard.tsx` client island for drag-and-drop, search, add-column, add-card, `CardDetailModal` |
+| REQ-28 | Card Detail Modal | `frontend/components/board/CardDetailModal.tsx` inside `frontend/components/shared/BaseModal.tsx`; editable fields; "Move to column" select; composes `CommentList.tsx`; comment form |
+| REQ-29 | Header Component | `frontend/components/Header.tsx` — navigation links, `NotificationBell.tsx`, logout; `frontend/hooks/useNotifications.ts` feeds bell count |
+| REQ-30 | useErrorHandler Hook | `frontend/hooks/useErrorHandler.ts` |
+| REQ-31 | lib/apiClient Module | `frontend/lib/apiClient.ts` + `frontend/lib/errors.ts` + `frontend/lib/toast.ts` |
+| REQ-32 | Shared UI Components | `frontend/components/shared/BaseButton.tsx`, `frontend/components/shared/BaseBadge.tsx`, `frontend/components/shared/BaseModal.tsx` |
