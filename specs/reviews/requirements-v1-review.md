@@ -61,8 +61,20 @@ Brief v0.1 never listed the assignment's exact routes or page behaviors, so Kiro
 | 17 | REQ-10.3 | "non-deleted-card comments" is ambiguous | Vague | R4 |
 | 18 | REQ-9.7 / 19.3, 9.8 / 21.1, 17.5 / 21.3, 2.4 / 18.1, 4.2 / 18.3 | The same behavior is specified twice, which leads to duplicate tests and lets the copies drift apart | Duplication | R5 |
 | 19 | REQ-6.7 | The new reorder criterion (added in R1) has no error cases | Missing criterion | R3 |
+| 20 | REQ-25.4, REQ-2 | "the minimum required length" gives no number, so it cannot be tested; the API does not enforce any length, so client and server disagree | Vague, inconsistent | R6 |
+| 21 | REQ-3 | No criterion says the `/login` page shows an error on invalid credentials; only the E2E test (REQ-23.4) mentions it | Missing criterion | R6 |
+| 22 | REQ-32 | `BaseModal` has no criterion as the wrapper for all forms; Appendix B requires it | Missing criterion | R6 |
+| 23 | REQ-29, REQ-11.6 | `NotificationBell` only shows a count; nothing in the Web calls `PATCH /api/notifications/<id>/read`, so the endpoint has no consumer | Missing criterion | R6 |
+| 24 | REQ-28.2 vs REQ-16.1, 16.8 | The assignee picker needs the member list, but `GET /members` is admin-only, so a regular member cannot assign a card | Conflicting requirements | R6 |
+| 25 | REQ-14 | `/profile` has no criterion for controlled inputs, submitting to `PATCH /api/users/me`, or a success toast | Missing criterion | R6 |
+| 26 | REQ-27.6 | Does not say whether search results come from `GET /api/cards?q=` (REQ-13) or from a client-side filter | Ambiguous | R6 |
+| 27 | REQ-29.1 | "the application's main pages" is vague | Vague | R6 |
+| 28 | REQ-9.9, REQ-31, REQ-12 | The native HTML5 DnD API is not stated; `lib/toast` has no criterion; My Tasks does not use `BaseBadge` for priority | Missing criterion | R6 |
 
-**Round status:** R1 was applied on 2026-11-26 and is logged as [CHANGELOG CL-02](../CHANGELOG.md#cl-02). Kiro edited outside the requested scope once, so the R2–R5 prompts below now say explicitly that other problems must be reported, not fixed.
+**Round status:**
+
+- **R1** was applied on 2026-11-26 ([CHANGELOG CL-02](../CHANGELOG.md#cl-02)). Kiro edited outside the requested scope once, so the R2–R6 prompts say explicitly that other problems must be reported, not fixed.
+- **R2** was applied on 2026-11-26 ([CHANGELOG CL-03](../CHANGELOG.md#cl-03)). It added REQ-25 to REQ-32 (46 criteria), only appended, and left existing criteria untouched. Findings #20–#28 come from reviewing R2 and are handled in R6, after brief v0.3.
 
 ## Refinement prompts
 
@@ -73,7 +85,7 @@ Process for each round:
 3. Commit with `docs(specs): refine requirements rN — <topic>`.
 4. Write the `CHANGELOG.md` entry (before → after), using the git diff as evidence.
 
-Stay in the requirements phase until all five rounds are done. Do not click "Generate Tech Design" yet.
+Stay in the requirements phase until every round (R1–R6) is done. Do not click "Generate Tech Design" yet.
 
 ### R1 — Endpoint paths
 
@@ -168,6 +180,37 @@ which creates duplicate tests and lets the copies drift apart:
 - REQ-4.2 and REQ-18.3 (JWT required on all endpoints)
 Keep the behavior in the feature requirement. In the NFR requirement, replace the duplicate
 with "Covered by REQ-x.y" and keep only measurable NFR targets.
+Change nothing else. If you notice any other problem, report it at the end instead of
+fixing it. List every edit at the end.
+```
+
+### R6 — Gaps found while reviewing R2
+
+```text
+Refinement round 6 — gaps found while reviewing R2.
+Re-read specs/project-brief.md with your file-read tool: it is now v0.3.
+Append criteria to the END of the listed requirements; do not renumber existing criteria.
+- REQ-2: IF the password is shorter than 8 characters, THEN THE API SHALL return 400.
+- REQ-25.4: replace "meets the minimum required length" with "is at least 8 characters long"
+  (this one edit to an existing criterion is allowed).
+- REQ-3: IF login fails, THEN THE /login page SHALL display the error message from the
+  { "error": "..." } envelope and stay on /login.
+- REQ-16: any Member or Admin may send GET /api/boards/<id>/members (the assignee picker in
+  REQ-28.2 needs it); state that REQ-16.8 applies only to POST, PATCH and DELETE on members.
+- REQ-29: NotificationBell opens a list of the latest notifications from GET /api/notifications;
+  WHEN the user clicks an unread notification, THE NotificationBell SHALL send
+  PATCH /api/notifications/<id>/read and decrease the unread count.
+  The Header navigation links are exactly: Dashboard (/), My Tasks (/my-tasks), Profile (/profile).
+- REQ-32: BaseModal SHALL be the wrapper for every form (create board, add column, add card,
+  card detail).
+- REQ-14: THE /profile page SHALL use controlled inputs, submit PATCH /api/users/me, and show
+  a success toast through lib/toast.
+- REQ-27: state that the matching cards for an active search come from
+  GET /api/cards?board_id=<id>&q=<text> (REQ-13), not from client-side filtering.
+- REQ-9: state that useDragAndDrop uses the native HTML5 Drag and Drop API.
+- REQ-31: lib/toast SHALL expose success, error and loading helpers that wrap
+  react-hot-toast's toast.success(), toast.error() and toast.loading().
+- REQ-12: THE /my-tasks page SHALL show each card's priority with BaseBadge.
 Change nothing else. If you notice any other problem, report it at the end instead of
 fixing it. List every edit at the end.
 ```

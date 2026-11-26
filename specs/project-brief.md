@@ -2,7 +2,7 @@
 
 | Field   | Value                                                                 |
 | ------- | --------------------------------------------------------------------- |
-| Version | 0.2 (draft)                                                           |
+| Version | 0.3 (draft)                                                           |
 | Date    | 2026-11-26                                                            |
 | Status  | Draft — input for Kiro spec generation (`requirements.md` → `design.md` → `tasks.md`) |
 | Scope   | Flask REST API + Next.js web app, both deployed publicly              |
@@ -336,7 +336,7 @@ Paths and methods below are **fixed**. They come from the assignment, plus the a
 | boards | GET | `/api/boards/<id>` | Board with columns and cards nested | Assignment |
 | boards | PATCH | `/api/boards/<id>` | Rename a board | Assignment |
 | boards | DELETE | `/api/boards/<id>` | Delete a board | Assignment |
-| boards | GET | `/api/boards/<id>/members` | List members | §5.2 |
+| boards | GET | `/api/boards/<id>/members` | List members. Readable by **any** board member, because the assignee picker needs it; add, change and remove stay admin-only. | §5.2 |
 | boards | POST | `/api/boards/<id>/members` | Add a member by email (`email`, `role`) | §5.2 |
 | boards | PATCH | `/api/boards/<id>/members/<user_id>` | Change a member's role | §5.2 |
 | boards | DELETE | `/api/boards/<id>/members/<user_id>` | Remove a member | §5.2 |
@@ -365,14 +365,14 @@ These come from the assignment. Every item needs at least one acceptance criteri
 
 | Area | Required behavior |
 | ---- | ----------------- |
-| `/register` | Controlled inputs. Client-side validation before submit (required name, valid email format, minimum password length). Submits to `POST /api/auth/register` and shows field errors and API errors. |
+| `/register` | Controlled inputs. Client-side validation before submit: name required, valid email format, password at least **8 characters**. The API enforces the same password rule and returns `400` otherwise. Submits to `POST /api/auth/register` and shows field errors and API errors. |
 | `/login` | Submits to `POST /api/auth/login`. On success stores the token (§5.4) and redirects to `/`. On failure shows an error message. |
 | `/` Dashboard | Server Component. Lists the user's boards from `GET /api/boards` and has a create-board action. Shows an empty state when the user has no boards. |
 | `/boards/[id]` | Server Component rendering a Kanban layout: columns in `order`, cards in `order`. Supports adding columns and cards, the search box (§F8) and opening `CardDetailModal`. |
 | `CardDetailModal.tsx` | Client Component inside `BaseModal`. Shows and edits card fields and has the "Move to column" select (§5.10). Composes `CommentList.tsx` and a comment form that submits to `POST /api/cards/<id>/comments`. The user can edit and delete their own comments. |
 | `/my-tasks` | Cards from `GET /api/cards?assignee=me`, grouped by board name. Uses `BaseButton` and `BaseBadge`; no one-off buttons. |
 | `/profile` | Controlled inputs pre-filled from `AuthContext`. Submits to `PATCH /api/users/me`. Uses `BaseButton`. |
-| Header | Navigation, `NotificationBell` with the unread count, and logout. |
+| Header | Navigation links: Dashboard (`/`), My Tasks (`/my-tasks`), Profile (`/profile`). Logout. `NotificationBell` shows the unread count and opens a list of the latest notifications; clicking an unread notification calls `PATCH /api/notifications/<id>/read` and lowers the count. |
 | `components/shared` | `BaseButton` (variants: `primary`, `secondary`, `destructive`); `BaseBadge` (color variants); `BaseModal` (wrapper for all forms). |
 | `hooks/useDragAndDrop.ts` | Native HTML5 Drag and Drop API. On drop it calls `PATCH /api/cards/<id>/position`, updates local state optimistically, and restores the original position if the API returns an error. |
 | `hooks/useNotifications.ts` | Polls `GET /api/notifications` every 30 seconds and feeds `NotificationBell`. |
@@ -389,3 +389,4 @@ These come from the assignment. Every item needs at least one acceptance criteri
 | ------- | ---- | ------ |
 | 0.1 | 2026-11-26 | First draft, prepared with AI assistance (Claude Code) from the assignment text. Pending the author's review. |
 | 0.2 | 2026-11-26 | Added Appendix A (canonical endpoint catalog) and Appendix B (required frontend behaviors). Reason: the first Kiro `requirements.md` invented 5 endpoint paths and under-specified the frontend, because v0.1 did not list the assignment's exact routes or page behaviors. |
+| 0.3 | 2026-11-26 | Three gaps found while reviewing R2: (1) the password minimum is now 8 characters, enforced by both client and API, where before no number was given; (2) `GET /members` is readable by any member, because the assignee picker would otherwise be unusable for non-admins; (3) `NotificationBell` gets a list with click-to-mark-read, because the `/read` endpoint had no UI consumer. |
