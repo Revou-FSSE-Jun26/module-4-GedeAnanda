@@ -17,6 +17,7 @@ Raw AI output is committed **before** each refinement, so every entry can be ver
 | [CL-04](#cl-04) | `requirements.md` | R3 | Kiro (Spec) | Added 10 missing criteria required by the assignment (validation, 401/404/409 cases, pagination) |
 | [CL-05](#cl-05) | `requirements.md` | R4 | Kiro (Spec) | Fixed a self-contradicting trigger, untestable wording, empty-list edge cases and an invalid reference |
 | [CL-06](#cl-06) | `requirements.md` | R5 | Kiro (Spec) | Removed 5 duplicated criteria; NFR requirements now reference the feature criteria |
+| [CL-07](#cl-07) | `requirements.md` | R6 | Kiro (Spec) | Closed 9 gaps found while reviewing R2; requirements accepted (32 REQs, 187 criteria) |
 
 ---
 
@@ -249,3 +250,58 @@ A behavior without a criterion has no test, so these would have been missed in `
 - **References checked.** Each "Covered by" target was read and holds the full behavior: REQ-2.1 and 2.4 (hash, no plain text), REQ-4.2 (the same three public endpoints), REQ-9.7 and 9.8 (optimistic update, then rollback with a toast) and REQ-17.5 (no HTML errors, JSON `500`).
 - **Information lost, now tracked.** The removed REQ-18.1 was the only place in the requirements that named **Werkzeug** as the hashing library. That is an implementation choice, so it belongs in `design.md`, not here. It is added to the design review checklist so it does not silently disappear.
 - **Result.** Each behavior now has exactly one criterion, so each gets exactly one test in `tasks.md`.
+
+---
+
+## CL-07
+
+**Requirements R6: close the gaps found while reviewing R2, and accept the requirements**
+
+| Field | Value |
+| ----- | ----- |
+| Date | 2026-11-26 |
+| Artifact | `.kiro/specs/revotask-mvp/requirements.md` |
+| Tool | Kiro, Spec mode |
+| Trigger | Review findings #20–#28, after brief v0.3 |
+| Prompt | R6 in [requirements-v1-review.md](reviews/requirements-v1-review.md#r6--gaps-found-while-reviewing-r2) |
+| Commits | before `6c513c3` → after `09f64ad` |
+
+**Trigger.** Reviewing R2 surfaced 9 more gaps:
+
+- an untestable password rule
+- no UI for a failed login
+- an endpoint with no consumer (`/read`)
+- a conflict between the assignee picker and admin-only `GET /members`
+- missing `BaseModal`, `lib/toast` and Profile criteria
+- vague navigation and search wording
+
+**Before → After.**
+
+| Criterion | Before | After |
+| --------- | ------ | ----- |
+| REQ-25.4 | password "meets the minimum required length" | password "is at least 8 characters long" |
+| REQ-2.6 | *(missing)* | IF the password is shorter than 8 characters, THEN `400`. Client and API now agree |
+| REQ-3.6 | *(missing)* | IF login fails, THEN `/login` shows the envelope error and stays on `/login` |
+| REQ-16.1 | WHEN **an Admin** sends `GET /members` | WHEN **any Member or Admin** sends `GET /members` |
+| REQ-16.8 | Non-admin → `403` on "any member management action" | Non-admin → `403` on `POST`, `PATCH`, `DELETE` members only |
+| REQ-29.1 | links to "the application's main pages" | links to Dashboard `/`, My Tasks `/my-tasks`, Profile `/profile` |
+| REQ-29.4–29.5 | *(missing)* | `NotificationBell` lists the latest notifications; clicking an unread one calls `PATCH …/read` and lowers the count |
+| REQ-32.5 | *(missing)* | `BaseModal` wraps every form: create board, add column, add card, `CardDetailModal` |
+| REQ-14.6–14.8 | *(missing)* | `/profile`: controlled inputs, `PATCH /api/users/me`, success toast via `lib/toast` |
+| REQ-27.6 | "render only the cards whose titles match" (source unclear) | fetch from `GET /api/cards?board_id=&q=` (REQ-13) and render the returned cards |
+| REQ-9.9 | drag-and-drop "using the `useDragAndDrop` hook" | "via the native HTML5 Drag and Drop API, implemented in `useDragAndDrop`" |
+| REQ-31.5 | *(missing)* | `lib/toast` exposes `success`, `error` and `loading` wrapping react-hot-toast |
+| REQ-12.5 | *(missing)* | `/my-tasks` shows each card's priority with `BaseBadge` |
+
+**Review of the result.**
+
+- **Complete.** All 11 prompt items were applied: 16 additions and 6 in-place rewrites.
+- **In-place rewrites checked.** The prompt said to append, but REQ-16.1, 16.8, 29.1, 27.6 and 9.9 were rewritten in place. Each rewrite is the requested fix itself. Appending would have left the old wording contradicting the new one (for example "WHEN an Admin" next to "any Member"). Accepted.
+- **Conflict #24 resolved.** A regular member can now load the member list for the assignee picker, while add, change and remove stay admin-only.
+- **Final checks before acceptance:**
+  - 32 requirements, 187 acceptance criteria (up from 119 in v1). A script confirmed that every requirement has at least one criterion.
+  - All 30 endpoint paths match brief Appendix A ([CL-02](#cl-02)).
+  - Every Appendix B frontend item now has a criterion naming its page, component, hook or lib file.
+  - The rubric's comment-test status codes are all specified: `201` (10.1), `400` (10.2), `401` (10.7), `403` (10.6).
+
+**Status: requirements accepted.** The next phase is `design.md` (Kiro: Generate Tech Design). The design review must check that Werkzeug is named as the hashing library (see [CL-06](#cl-06)).

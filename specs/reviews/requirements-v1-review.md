@@ -79,6 +79,9 @@ Brief v0.1 never listed the assignment's exact routes or page behaviors, so Kiro
 - **R3** was applied on 2026-11-26 ([CHANGELOG CL-04](../CHANGELOG.md#cl-04)). All 7 items were applied as appended criteria (10 additions, 0 deletions). Finding #29 is a gap in the R3 prompt itself and was added to R4.
 - **R4** was applied on 2026-11-26 ([CHANGELOG CL-05](../CHANGELOG.md#cl-05)). All 6 items were applied: 7 lines rewritten, nothing else touched.
 - **R5** was applied on 2026-11-26 ([CHANGELOG CL-06](../CHANGELOG.md#cl-06)). All 5 duplicates were replaced with "Covered by" references, and each reference was verified. Carried into the design review: `design.md` must name Werkzeug as the password-hashing library, because the removed REQ-18.1 was the only place it appeared.
+- **R6** was applied on 2026-11-26 ([CHANGELOG CL-07](../CHANGELOG.md#cl-07)). All 11 items were applied, and findings #20–#28 are closed.
+
+**Final verdict: requirements ACCEPTED.** The document has 32 requirements and 187 acceptance criteria, and every requirement has at least one criterion. All 29 findings are closed. Next phase: `design.md`.
 
 ## Refinement prompts
 
