@@ -26,8 +26,15 @@ def create_app(config: Config | None = None) -> Flask:
     register_error_handlers(app)
     register_jwt_handlers()
     register_health(app)
+    register_blueprints(app)
 
     return app
+
+
+def register_blueprints(app: Flask) -> None:
+    from app.blueprints.auth.routes import auth_bp
+
+    app.register_blueprint(auth_bp)
 
 
 def register_health(app: Flask) -> None:
