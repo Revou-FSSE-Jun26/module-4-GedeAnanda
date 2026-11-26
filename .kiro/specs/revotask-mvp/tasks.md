@@ -6,6 +6,12 @@ This plan builds the RevoTask MVP in incremental layers: backend skeleton → he
 
 ## Tasks
 
+- [ ] 0. Steering guidelines (before any code task)
+  - [ ] 0.1 Author the steering guidelines
+    - Create `guidelines/backend.md`, `guidelines/database.md` and `guidelines/frontend.md`; every guideline has a Rule, a Rationale and a concrete RevoTask Example; no rule overlaps or contradicts a rule in another file
+    - Load the guidelines as project instructions for the AI coding tool before generating any code, and keep one before/after comparison of AI output generated without and with the guidelines
+    - _Requirements: REQ-22.1–22.3_
+
 - [ ] 1. Backend project skeleton
   - [ ] 1.1 Scaffold `backend/` folder structure and core files
     - Create `backend/app/__init__.py` with the `create_app()` application factory; register extensions, blueprints, error handlers, and the health endpoint placeholder
@@ -19,7 +25,7 @@ This plan builds the RevoTask MVP in incremental layers: backend skeleton → he
     - Create `backend/requirements.txt` listing: Flask, Flask-SQLAlchemy, Flask-Migrate, Flask-JWT-Extended, Flask-CORS, marshmallow, Werkzeug, psycopg2-binary, gunicorn, pytest, pytest-flask, python-dotenv
     - Create `backend/.env.example` listing all required env vars (`DATABASE_URL`, `TEST_DATABASE_URL`, `SECRET_KEY`, `JWT_SECRET_KEY`, `CORS_ORIGINS`, `FLASK_ENV`) with placeholder values and no real secrets
     - Create empty `backend/app/blueprints/` package directory tree (one `__init__.py` per blueprint folder: auth, boards, columns, cards, comments, notifications, analytics, users)
-    - _Requirements: REQ-18.5, REQ-18.6, REQ-21.2, REQ-22.1_
+    - _Requirements: REQ-4.2, REQ-17.1–17.5, REQ-18.3, REQ-18.5, REQ-18.6, REQ-21.2, REQ-21.3, REQ-22.1_
 
   - [ ] 1.2 Create all Flask-SQLAlchemy models
     - Create `backend/app/models/__init__.py` that re-exports all models so Flask-Migrate can discover them
@@ -55,7 +61,7 @@ This plan builds the RevoTask MVP in incremental layers: backend skeleton → he
     - Create `backend/app/blueprints/auth/routes.py`: `POST /api/auth/register` → validate with `RegisterSchema`, call `register_user`, return `201 { "data": UserOut }`; `POST /api/auth/login` → validate with `LoginSchema`, call `login_user`, return `200 { "data": { "access_token": ..., "user": UserOut } }`; no `try/except` in routes — errors propagate to app-factory handlers
     - Register the auth Blueprint in `create_app()`
     - Add `UserOut` dump schema to `backend/app/blueprints/users/schema.py` (or a shared location) for use across blueprints
-    - _Requirements: REQ-2.1–2.4, REQ-2.6, REQ-3.1–3.2, REQ-18.2_
+    - _Requirements: REQ-2.1–2.4, REQ-2.6, REQ-3.1–3.2, REQ-18.1, REQ-18.2_
 
   - [ ] 4.2 Write pytest tests for the auth blueprint
     - In `backend/tests/test_auth.py` write the following test cases:
@@ -74,7 +80,7 @@ This plan builds the RevoTask MVP in incremental layers: backend skeleton → he
     - Create `backend/app/blueprints/boards/service.py`: `create_board(user_id, data)` — create Board, add creator as BoardMember with `role="admin"`, return board; `list_boards(user_id)` — query boards via BoardMember join, include the requesting user's role; `get_board(user_id, board_id)` — membership check (raise `AppError(404, ...)` if not member), use `selectinload(Board.columns).selectinload(BoardColumn.cards.and_(Card.deleted_at.is_(None)))` ordered by `BoardColumn.order` and `Card.order`; `rename_board(user_id, board_id, data)` — admin check (raise `AppError(403, ...)`), update name; `delete_board(user_id, board_id)` — admin check, hard-delete; `list_members(user_id, board_id)`; `add_member(user_id, board_id, data)` — admin check, look up email (raise `AppError(404, ...)` if not found), check for duplicate (raise `AppError(409, ...)`), create BoardMember, trigger `create_notification` (N3); `update_member_role(user_id, board_id, target_user_id, data)` — admin check, last-admin-demotion guard (raise `AppError(400, ...)`); `remove_member(user_id, board_id, target_user_id)` — admin check, last-admin-removal guard (raise `AppError(400, ...)`)
     - Create `backend/app/blueprints/boards/routes.py`: implement all board and member endpoints listed in design.md; no `try/except`; use `@jwt_required()` for protected routes
     - Register the boards Blueprint in `create_app()`
-    - _Requirements: REQ-5.1–5.7, REQ-16.1–16.10, REQ-18.4_
+    - _Requirements: REQ-5.1–5.7, REQ-16.1–16.10, REQ-18.4, REQ-19.2_
 
   - [ ] 5.2 Write pytest tests for the boards blueprint
     - In `backend/tests/test_boards.py` write the following test cases:
@@ -253,6 +259,7 @@ This plan builds the RevoTask MVP in incremental layers: backend skeleton → he
     - Initialise a Next.js App Router project in `frontend/` using `create-next-app` with TypeScript enabled; set `"strict": true` and `"noImplicitAny": true` in `frontend/tsconfig.json`; install and configure Tailwind CSS
     - Create `frontend/.env.example` listing `NEXT_PUBLIC_API_BASE_URL` (used by Client Components) and `API_BASE_URL` (used by Server Components) with placeholder values
     - Install dependencies: `react-hot-toast` plus the test tooling. No drag-and-drop library: drag-and-drop uses only the native HTML5 Drag and Drop API (REQ-9.9)
+    - Install and configure Jest + React Testing Library: `jest`, `jest-environment-jsdom`, `@testing-library/react`, `@testing-library/jest-dom`, `@testing-library/user-event` and TypeScript support via `next/jest`; create `frontend/jest.config.ts` and `frontend/jest.setup.ts`; add `"test": "jest"` to `frontend/package.json` so `npm test` runs the suite
     - _Requirements: REQ-22.3, REQ-31.1–31.2_
 
   - [ ] 13.2 Create TypeScript types
@@ -274,6 +281,13 @@ This plan builds the RevoTask MVP in incremental layers: backend skeleton → he
     - Create `frontend/components/shared/BaseButton.tsx`: accept a `variant` prop with values `primary`, `secondary`, `destructive`; render distinct Tailwind classes per variant; ensure minimum 44×44 px tap targets via `min-w-[44px] min-h-[44px]`
     - Create `frontend/components/shared/BaseBadge.tsx`: accept a `priority` prop (`low` | `medium` | `high`); render a colour badge that always includes the priority text so the information is not colour-only
     - Create `frontend/components/shared/BaseModal.tsx`: modal wrapper that closes on Escape key press; returns focus to the trigger element on close; traps focus within the modal while open
+    - _Requirements: REQ-22.2, REQ-24.2, REQ-24.3, REQ-32.1–32.2_
+
+  - [ ] 13.6 Write component tests for the shared UI components
+    - In `frontend/__tests__/BaseButton.test.tsx`: each of the three variants (`primary`, `secondary`, `destructive`) renders its own style and fires `onClick`
+    - In `frontend/__tests__/BaseBadge.test.tsx`: the priority text is always rendered for `low`, `medium` and `high`
+    - In `frontend/__tests__/BaseModal.test.tsx`: pressing Escape closes the modal and focus returns to the trigger element
+    - Use `role` and label queries from React Testing Library
     - _Requirements: REQ-24.2, REQ-24.3, REQ-32.1–32.2_
 
 - [ ] 14. Frontend hooks and middleware
@@ -290,7 +304,7 @@ This plan builds the RevoTask MVP in incremental layers: backend skeleton → he
   - [ ] 14.3 Create useDragAndDrop hook
     - Create `frontend/hooks/useDragAndDrop.ts`: implement using the native HTML5 Drag and Drop API; on drop, optimistically update local card position state before the API call; call `PATCH /api/cards/<id>/position`; on success apply `column_orders` to local state if `rebalanced` is true; on failure restore the card's original position and call `useErrorHandler` to show an error toast
     - Write Jest unit tests in `frontend/__tests__/useDragAndDrop.test.ts`: mock `apiClient` to return an error; assert the card position is restored to its pre-drop value and `lib/toast.error` is called
-    - _Requirements: REQ-9.7–9.9, REQ-21.1_
+    - _Requirements: REQ-9.7–9.9, REQ-19.3, REQ-21.1_
 
   - [ ] 14.4 Create Next.js middleware
     - Create `frontend/middleware.ts` (Edge middleware; on Next.js 16+ the file is `frontend/proxy.ts` instead): read the `revotask_token` cookie; redirect unauthenticated requests to protected routes to `/login`; explicitly exclude `/login` and `/register` from protection; use `NextResponse.redirect`
@@ -313,7 +327,7 @@ This plan builds the RevoTask MVP in incremental layers: backend skeleton → he
 - [ ] 16. Header and notifications
   - [ ] 16.1 Implement Header component
     - Create `frontend/components/Header.tsx` as a Client Component; render nav links to `/` (Dashboard), `/my-tasks`, `/profile`; render `NotificationBell`; render logout button that calls `lib/auth.clearToken()`, `clearAuth()`, and redirects to `/login`
-    - _Requirements: REQ-4.3, REQ-29.1, REQ-29.3_
+    - _Requirements: REQ-4.3, REQ-4.4, REQ-29.1, REQ-29.3_
 
   - [ ] 16.2 Implement NotificationBell component
     - Create `frontend/components/notifications/NotificationBell.tsx`; use `useNotifications` hook to get `unreadCount` and `notifications`; display the unread count badge; on open render a dropdown list of notifications; when the user clicks an unread notification call `PATCH /api/notifications/<id>/read` and decrement the displayed count
@@ -367,7 +381,7 @@ This plan builds the RevoTask MVP in incremental layers: backend skeleton → he
     - _Requirements: REQ-20.1–20.3, REQ-24.1–24.3_
 
 - [ ] 21. Frontend checkpoint — Ensure all unit tests pass
-  - Run Jest tests (`jest --testPathPattern="__tests__"`) and confirm `useErrorHandler`, `useNotifications`, and `useDragAndDrop` tests all pass; resolve any failures before deploy.
+  - Run `npm test` from `frontend/` and confirm the hook tests (`useErrorHandler`, `useNotifications`, `useDragAndDrop`) and the shared component tests (`BaseButton`, `BaseBadge`, `BaseModal`) all pass; resolve any failures before deploy.
   - _Requirements: REQ-23.2_
 
 - [ ] 22. Vercel deploy
@@ -377,9 +391,20 @@ This plan builds the RevoTask MVP in incremental layers: backend skeleton → he
     - Verify that the live Vercel URL loads the login page and that a browser login from the live site succeeds and reaches the dashboard
     - _Requirements: REQ-31.1–31.2_
 
+  - [ ] 22.2 Verify the board-load performance target on production
+    - Seed one board with 200 cards on the Railway deployment (script or API calls with a test account)
+    - Measure `GET /api/boards/<id>` at least 20 times and record the 95th percentile; it must be under 500 ms; record the result in the README
+    - _Requirements: REQ-19.1_
+
 - [ ] 23. Playwright E2E tests
+  - [ ] 23.0 Set up Playwright
+    - Install `@playwright/test` in `frontend/` and run `npx playwright install` once
+    - Create `frontend/playwright.config.ts`: `testDir: "./e2e"`, `baseURL` from the `E2E_BASE_URL` env var (the live Vercel URL), HTML reporter writing to `frontend/playwright-report/`
+    - Create `frontend/e2e/helpers.ts`: register a unique test user per run through `POST /api/auth/register` on the live API (unique email per run), and export a `login(page, user)` helper
+    - _Requirements: REQ-23.2, REQ-23.3_
+
   - [ ] 23.1 Implement auth E2E scenarios
-    - Create `e2e/auth.spec.ts`; use `role` and `data-testid` selectors; use `expect(locator)` web-first assertions; do NOT use `waitForTimeout`
+    - Create `frontend/e2e/auth.spec.ts`; use `role` and `data-testid` selectors; use `expect(locator)` web-first assertions; do NOT use `waitForTimeout`
     - Scenario 1: successful login → navigate to `/login`, fill credentials, submit, `expect(page).toHaveURL('/')`
     - Scenario 2: invalid credentials → submit wrong password, `expect(locator).toContainText(...)` for error message, URL stays `/login`
     - Scenario 3: unauthenticated visit to `/` → `expect(page).toHaveURL('/login')`
@@ -387,7 +412,7 @@ This plan builds the RevoTask MVP in incremental layers: backend skeleton → he
     - _Requirements: REQ-23.4_
 
   - [ ] 23.2 Implement Kanban journey E2E scenario
-    - Create `e2e/kanban.spec.ts`; use `role` and `data-testid` selectors; use `waitForResponse` to await API calls; do NOT use `waitForTimeout`
+    - Create `frontend/e2e/kanban.spec.ts`; use `role` and `data-testid` selectors; use `waitForResponse` to await API calls; do NOT use `waitForTimeout`
     - Step 1: log in
     - Step 2: open CreateBoardModal, create a board, assert it appears in the dashboard list
     - Step 3: add a "To Do" column via AddColumnForm
@@ -401,6 +426,27 @@ This plan builds the RevoTask MVP in incremental layers: backend skeleton → he
 - [ ] 24. Final checkpoint — Ensure all tests pass
   - Run `pytest backend/tests/` (all backend tests) and the Playwright suite against the live Vercel + Railway URLs; resolve any failures.
   - _Requirements: REQ-23.1–23.5_
+
+- [ ] 25. Deliverables
+  - [ ] 25.1 Publish the accepted specification documents
+    - Copy the accepted `requirements.md`, `design.md` and `tasks.md` from `.kiro/specs/revotask-mvp/` into `/specs`, next to `project-brief.md` and `CHANGELOG.md`
+    - _Requirements: REQ-22.1_
+
+  - [ ] 25.2 Verify the live API with Postman
+    - On the public Railway URL call `GET /api/health`, `POST /api/auth/register`, `POST /api/auth/login`, and at least one endpoint of each of the 8 blueprints; confirm every response uses the `{ "data": ... }` or `{ "error": "..." }` envelope; save a screenshot
+    - _Requirements: REQ-1.1, REQ-17.1–17.2_
+
+  - [ ] 25.3 Run the Playwright suite against the live URL and commit the report
+    - Run `npx playwright test` from `frontend/` with `E2E_BASE_URL` set to the Vercel URL; all tests must pass; commit `frontend/playwright-report/`; confirm `waitForTimeout` appears nowhere in `frontend/e2e/`
+    - _Requirements: REQ-23.3–23.5_
+
+  - [ ] 25.4 Write `README.md`
+    - Sections: overview, AI workflow summary (which tool was used in which phase), features, technologies, local run steps for both projects, test steps for pytest / `npm test` / Playwright, and screenshots (Postman, every major page, a card being dragged, the notification bell with an unread count, the mobile view, the Playwright report)
+    - _Requirements: REQ-20.1_
+
+  - [ ] 25.5 Write the guideline violation report
+    - List at least 3 guideline violations found in AI-generated code; for each: the file, the guideline it breaks, and the fix applied
+    - _Requirements: REQ-22.1–22.3_
 
 ## Notes
 
@@ -417,43 +463,48 @@ This plan builds the RevoTask MVP in incremental layers: backend skeleton → he
 ```json
 {
   "waves": [
-    { "id": 0, "tasks": ["1.1"] },
-    { "id": 1, "tasks": ["1.2"] },
-    { "id": 2, "tasks": ["2.1"] },
-    { "id": 3, "tasks": ["3.1"] },
-    { "id": 4, "tasks": ["4.1"] },
-    { "id": 5, "tasks": ["4.2"] },
-    { "id": 6, "tasks": ["5.1"] },
-    { "id": 7, "tasks": ["5.2"] },
-    { "id": 8, "tasks": ["6.1"] },
-    { "id": 9, "tasks": ["6.2"] },
-    { "id": 10, "tasks": ["7.1"] },
-    { "id": 11, "tasks": ["7.2"] },
-    { "id": 12, "tasks": ["8.1"] },
-    { "id": 13, "tasks": ["8.2"] },
-    { "id": 14, "tasks": ["9.1"] },
-    { "id": 15, "tasks": ["9.2"] },
-    { "id": 16, "tasks": ["10.1"] },
-    { "id": 17, "tasks": ["10.2"] },
-    { "id": 18, "tasks": ["11.1"] },
-    { "id": 19, "tasks": ["11.2"] },
-    { "id": 20, "tasks": ["13.1"] },
-    { "id": 21, "tasks": ["13.2", "13.3"] },
-    { "id": 22, "tasks": ["13.4", "13.5"] },
-    { "id": 23, "tasks": ["14.1", "14.2", "14.3", "14.4"] },
-    { "id": 24, "tasks": ["15.1"] },
-    { "id": 25, "tasks": ["15.2", "15.3"] },
-    { "id": 26, "tasks": ["16.1"] },
-    { "id": 27, "tasks": ["16.2"] },
-    { "id": 28, "tasks": ["17.1"] },
-    { "id": 29, "tasks": ["18.1", "18.2"] },
-    { "id": 30, "tasks": ["18.3"] },
-    { "id": 31, "tasks": ["18.4"] },
-    { "id": 32, "tasks": ["18.5"] },
-    { "id": 33, "tasks": ["19.1", "19.2"] },
-    { "id": 34, "tasks": ["20.1"] },
-    { "id": 35, "tasks": ["22.1"] },
-    { "id": 36, "tasks": ["23.1", "23.2"] }
+    { "id": 0, "tasks": ["0.1"] },
+    { "id": 1, "tasks": ["1.1"] },
+    { "id": 2, "tasks": ["1.2"] },
+    { "id": 3, "tasks": ["2.1"] },
+    { "id": 4, "tasks": ["3.1"] },
+    { "id": 5, "tasks": ["4.1"] },
+    { "id": 6, "tasks": ["4.2"] },
+    { "id": 7, "tasks": ["5.1"] },
+    { "id": 8, "tasks": ["5.2"] },
+    { "id": 9, "tasks": ["6.1"] },
+    { "id": 10, "tasks": ["6.2"] },
+    { "id": 11, "tasks": ["7.1"] },
+    { "id": 12, "tasks": ["7.2"] },
+    { "id": 13, "tasks": ["8.1"] },
+    { "id": 14, "tasks": ["8.2"] },
+    { "id": 15, "tasks": ["9.1"] },
+    { "id": 16, "tasks": ["9.2"] },
+    { "id": 17, "tasks": ["10.1"] },
+    { "id": 18, "tasks": ["10.2"] },
+    { "id": 19, "tasks": ["11.1"] },
+    { "id": 20, "tasks": ["11.2"] },
+    { "id": 21, "tasks": ["13.1"] },
+    { "id": 22, "tasks": ["13.2", "13.3"] },
+    { "id": 23, "tasks": ["13.4", "13.5"] },
+    { "id": 24, "tasks": ["13.6"] },
+    { "id": 25, "tasks": ["14.1", "14.2", "14.3", "14.4"] },
+    { "id": 26, "tasks": ["15.1"] },
+    { "id": 27, "tasks": ["15.2", "15.3"] },
+    { "id": 28, "tasks": ["16.1"] },
+    { "id": 29, "tasks": ["16.2"] },
+    { "id": 30, "tasks": ["17.1"] },
+    { "id": 31, "tasks": ["18.1", "18.2"] },
+    { "id": 32, "tasks": ["18.3"] },
+    { "id": 33, "tasks": ["18.4"] },
+    { "id": 34, "tasks": ["18.5"] },
+    { "id": 35, "tasks": ["19.1", "19.2"] },
+    { "id": 36, "tasks": ["20.1"] },
+    { "id": 37, "tasks": ["22.1"] },
+    { "id": 38, "tasks": ["22.2", "23.0"] },
+    { "id": 39, "tasks": ["23.1", "23.2"] },
+    { "id": 40, "tasks": ["25.1", "25.2", "25.3"] },
+    { "id": 41, "tasks": ["25.4", "25.5"] }
   ]
 }
 ```
