@@ -1138,7 +1138,7 @@ Runs against the live Vercel + Railway deployment. Uses `role` and `data-testid`
 |-----|----------|-------------------|----------------|
 | REQ-1 | 1, 3 | Health Check | `GET /api/health` (app factory `backend/app/__init__.py`) |
 | REQ-1 | 2 | Health Check — DB error | `GET /api/health` error handler in app factory |
-| REQ-2 | 1–4 | User Registration — API | `POST /api/auth/register` (auth blueprint) |
+| REQ-2 | 1–4, 6 | User Registration — API | `POST /api/auth/register` (auth blueprint) + `RegisterSchema` `validate.Length(min=8)` |
 | REQ-2 | 5 | User Registration — Web | `frontend/app/register/page.tsx` |
 | REQ-3 | 1–2 | User Login — API | `POST /api/auth/login` (auth blueprint) |
 | REQ-3 | 3–5 | User Login — Web token storage | `frontend/app/login/page.tsx` + `frontend/lib/auth.ts` + `frontend/context/AuthContext.tsx` |
