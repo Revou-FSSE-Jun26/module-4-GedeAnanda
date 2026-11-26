@@ -18,6 +18,7 @@ Raw AI output is committed **before** each refinement, so every entry can be ver
 | [CL-05](#cl-05) | `requirements.md` | R4 | Kiro (Spec) | Fixed a self-contradicting trigger, untestable wording, empty-list edge cases and an invalid reference |
 | [CL-06](#cl-06) | `requirements.md` | R5 | Kiro (Spec) | Removed 5 duplicated criteria; NFR requirements now reference the feature criteria |
 | [CL-07](#cl-07) | `requirements.md` | R6 | Kiro (Spec) | Closed 9 gaps found while reviewing R2; requirements accepted (32 REQs, 187 criteria) |
+| [CL-08](#cl-08) | `design.md` | DR2 | Kiro (Spec) | Defined response (dump) schemas; position/reorder responses carry rebalance info; tightened query and order validation |
 
 ---
 
@@ -305,3 +306,43 @@ A behavior without a criterion has no test, so these would have been missed in `
   - The rubric's comment-test status codes are all specified: `201` (10.1), `400` (10.2), `401` (10.7), `403` (10.6).
 
 **Status: requirements accepted.** The next phase is `design.md` (Kiro: Generate Tech Design). The design review must check that Werkzeug is named as the hashing library (see [CL-06](#cl-06)).
+
+---
+
+## CL-08
+
+**Design DR2: define the API response contract**
+
+| Field | Value |
+| ----- | ----- |
+| Date | 2026-11-26 |
+| Artifact | `.kiro/specs/revotask-mvp/design.md` |
+| Tool | Kiro, Spec mode |
+| Trigger | Design review findings D9–D13 ([design-v1-review.md](reviews/design-v1-review.md)) |
+| Prompt | DR2 in [design-v1-review.md](reviews/design-v1-review.md#dr2--api-contract) |
+| Commits | before `0937b45` (raw design v1) → after `1048724` |
+
+**Trigger.** Design v1 defined only *input* schemas. Every response body was written as "card fields…", "comment fields…" and so on. Two pages could not be built from that contract:
+
+- `/my-tasks` must group by board **name** (REQ-12.4), but cards carried no board name.
+- `CommentList` must show who wrote each comment, but comments only had `author_id`.
+
+The FLOAT rebalance also had a client-side flaw: after a server rebalance, the browser kept stale `order` values for every other card.
+
+**Before → After.**
+
+| Area | Before | After |
+| ---- | ------ | ----- |
+| Response bodies | `{ "data": { card fields... } }` and similar placeholders | New "Response Schemas" section: `UserOut`, `BoardOut` (with the user's `role`), `ColumnOut`, `CardOut` (with `board_id`, `board_name`, nested `assignee { id, name }`), `CommentOut` (nested `author { id, name }`), `NotificationOut`, `MemberOut`; every endpoint row now names its schema |
+| `PATCH /api/cards/<id>/position` | `200 { "data": { card fields including completed_at... } }` | `200 { "data": { "card": CardOut, "rebalanced": bool, "column_orders": [ { id, order } ] } }`; `useDragAndDrop` applies `column_orders` so the next drag uses fresh values |
+| `PATCH …/columns/reorder` | `200 { "data": { "id", "order" } }` | Same `rebalanced` / `column_orders` pattern |
+| `order` validation | `validate.Range(min=1e-10)`, which rejects valid values in (0, 1e-10] | `validate.Range(min=0, min_inclusive=False)`, which is exactly "> 0" |
+| `CardQuerySchema.assignee` | `fields.String()` (any value) | `fields.String(validate=OneOf(["me"]))`; no `assignee` and no `board_id` → `400` |
+| Notifications `400` text | "`page` < 1 …" (out of date after R4) | "`page` is not an integer >= 1, or `per_page` is not an integer from 1 to 100" |
+
+**Review of the result.**
+
+- **Run out of order.** DR2 was sent before DR1 by mistake (DR2 was the section open in the editor). The rounds touch independent sections, so the order does not matter. This entry records it rather than hiding it; DR1 follows next.
+- **Complete.** All 5 items were applied. The diff (102 additions, 22 deletions) only replaces success rows, adds the schema section, and rewrites the three schema lines named in the prompt.
+- **Password safety.** `UserOut` has no `password_hash`, and it is the only schema used for user data, so Property 6 is now enforced by construction rather than by remembering to delete a key.
+- **Partial gap.** The "neither `assignee` nor `board_id` → `400`" rule appears only as a comment in `CardQuerySchema`. The `GET /api/cards` endpoint row still lists only `401`/`404`. Added to DR4 as item 7.
