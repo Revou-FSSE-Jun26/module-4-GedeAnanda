@@ -125,6 +125,8 @@ RevoTask is a Trello-like task management web application consisting of two depl
 5. THE API SHALL assign FLOAT `order` values using the following strategy: append to end sets `order = last.order + 1024`; insert between two columns sets `order = (prev.order + next.order) / 2`; insert at top sets `order = first.order / 2`; WHEN the gap between neighbouring column order values drops below `1e-6`, THE API SHALL renumber all columns in that board to `1024, 2048, 3072, ...` in a single transaction.
 6. THE API SHALL expose a boolean `is_done` flag on each Column; WHEN no value is provided at creation, THE API SHALL default `is_done` to `false`.
 7. WHEN a Member or Admin sends `PATCH /api/boards/<id>/columns/reorder` with a `column_id` (UUID of a column on that board) and an `order` (float greater than 0), THE API SHALL update that column's order value and return HTTP `200`.
+8. IF the `column_id` in a `PATCH /api/boards/<id>/columns/reorder` request is not a valid UUID or does not identify a column on that board, THEN THE API SHALL return HTTP `400`.
+9. IF the `order` in a `PATCH /api/boards/<id>/columns/reorder` request is not a float greater than `0`, THEN THE API SHALL return HTTP `400`.
 
 ---
 
@@ -179,6 +181,7 @@ RevoTask is a Trello-like task management web application consisting of two depl
 8. IF the card move API request fails, THEN THE Web SHALL restore the card to its original position and display an error toast.
 9. WHILE the user is on a desktop browser, THE Web SHALL support moving cards via drag-and-drop using the `useDragAndDrop` hook.
 10. THE Web SHALL provide a "Move to column" select in `CardDetailModal` that calls `PATCH /api/cards/<id>/position`, enabling card moves on mobile devices.
+11. THE API SHALL validate the `PATCH /api/cards/<id>/position` request body using `CardPositionSchema`; IF the submitted `column_id` is not a valid UUID, THEN THE API SHALL return HTTP `400`.
 
 ---
 
@@ -196,6 +199,8 @@ RevoTask is a Trello-like task management web application consisting of two depl
 4. WHEN the comment author sends `PATCH /api/comments/<id>` with updated `content`, THE API SHALL update the Comment and return HTTP `200`.
 5. WHEN the comment author sends `DELETE /api/comments/<id>`, THE API SHALL delete the Comment and return HTTP `200` with `{ "data": { "id": "<uuid>" } }`.
 6. IF a user who is not the comment author attempts to edit or delete a comment, THEN THE API SHALL return HTTP `403`.
+7. IF a request to `POST /api/cards/<card_id>/comments`, `GET /api/cards/<card_id>/comments`, `PATCH /api/comments/<id>`, or `DELETE /api/comments/<id>` does not include a valid JWT, THEN THE API SHALL return HTTP `401`.
+8. IF the user is not a BoardMember of the card's board when accessing any comment endpoint for that card, THEN THE API SHALL return HTTP `404`.
 
 ---
 
@@ -214,6 +219,9 @@ RevoTask is a Trello-like task management web application consisting of two depl
 5. THE API SHALL paginate notifications with a default `per_page` of `20` and a maximum of `100`.
 6. WHEN a logged-in user sends `PATCH /api/notifications/<id>/read` to mark a notification as read, THE API SHALL set `is_read = true` and return HTTP `200`.
 7. WHILE the user is logged in and the Web is open, THE Web SHALL poll `GET /api/notifications` every 30 seconds and update the `NotificationBell` unread count.
+8. WHEN a logged-in user sends `GET /api/notifications`, THE API SHALL read the `page` and `per_page` query parameters to determine which page of results to return.
+9. IF the `page` query parameter is less than `1`, or the `per_page` query parameter is not an integer in the range `1` to `100`, THEN THE API SHALL return HTTP `400`.
+10. IF a logged-in user sends `PATCH /api/notifications/<id>/read` for a notification that belongs to a different user, THEN THE API SHALL return HTTP `404`.
 
 ---
 
@@ -294,6 +302,8 @@ RevoTask is a Trello-like task management web application consisting of two depl
 6. WHEN an Admin sends `DELETE /api/boards/<id>/members/<user_id>`, THE API SHALL remove the BoardMember and return HTTP `200` with `{ "data": { "id": "<uuid>" } }`.
 7. IF an Admin attempts to remove the last remaining admin from a board, THEN THE API SHALL return HTTP `400` with `{ "error": "<message>" }`.
 8. IF a Member (non-Admin) attempts any member management action, THEN THE API SHALL return HTTP `403`.
+9. IF the `email` submitted to `POST /api/boards/<id>/members` already belongs to an existing BoardMember of that board, THEN THE API SHALL return HTTP `409`.
+10. IF an Admin sends `PATCH /api/boards/<id>/members/<user_id>` with a role that would leave the board with no remaining admin, THEN THE API SHALL return HTTP `400`.
 
 ---
 
