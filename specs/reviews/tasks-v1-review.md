@@ -127,3 +127,8 @@ Tasks refinement round 2 — test setup, deliverables and traceability. Fix exac
 Change nothing else. If you notice any other problem, report it at the end instead of fixing
 it. List every edit at the end.
 ```
+
+## Round status
+
+- **Tool change.** After the raw `tasks.md` was generated, Kiro's free plan reached its monthly usage limit ("You've reached your monthly usage limit", Kiro Free 0 / 50 credits, 2026-11-26). The TR1 prompt above could not be sent. From this round on, refinements are applied with **Claude Code** using the same prompts, and each is checked the same way.
+- **TR1** was applied on 2026-11-26 with Claude Code ([CHANGELOG CL-13](../CHANGELOG.md#cl-13)). All 7 items were applied.
