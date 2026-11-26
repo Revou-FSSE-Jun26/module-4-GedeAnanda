@@ -261,3 +261,39 @@ def test_update_comment_by_non_author_returns_403(client, comment, auth_headers,
     assert "error" in res.get_json()
     assert "data" not in res.get_json()
 ```
+
+---
+
+## BE-11 — Shared helpers have one fixed location and are never redefined in a blueprint
+
+**Rule.** Cross-cutting helpers live in exactly one module and are imported from there:
+
+| Helper | Module |
+| ------ | ------ |
+| `success(data, status=200)` | `app/utils/responses.py` |
+| `AppError(status_code, message)` | `app/exceptions.py` |
+| `current_user_id()`, `require_member(user_id, board_id)`, `require_admin(user_id, board_id)` | `app/utils/auth.py` |
+| `active_cards()` | `app/models/card.py` |
+| `create_notification(...)` | `app/blueprints/notifications/service.py` |
+
+A blueprint never defines its own exception class, its own error handler, its own response builder or its own membership query.
+
+**Rationale.** In the before/after comparison ([`comparison/README.md`](comparison/README.md)), the agent working without guidelines wrote a private `CommentError`, two private error handlers and a private membership join. The agent working with guidelines used the shared helpers but had to guess three import paths, because the guidelines did not say where the helpers live. Eight blueprints guessing independently means eight variants.
+
+**Example.**
+
+```python
+# backend/app/blueprints/comments/service.py
+from app.exceptions import AppError
+from app.utils.auth import require_member
+from app.models.card import active_cards
+from app.blueprints.notifications import service as notifications
+```
+
+```python
+# Wrong: a private copy inside the blueprint
+class CommentError(Exception): ...
+
+@comments_bp.errorhandler(CommentError)
+def handle_comment_error(err): ...
+```
