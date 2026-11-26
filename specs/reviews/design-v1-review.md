@@ -79,6 +79,28 @@ Do not click "Generate Task List" until DR1–DR4 are done.
 - **DR2** was applied on 2026-11-26 ([CHANGELOG CL-08](../CHANGELOG.md#cl-08)). It was sent **before** DR1 by mistake. That is harmless, because the rounds edit independent sections. All 5 items were applied. One partial gap (the `GET /api/cards` 400 rule appears only in a schema comment) moved to DR4 as item 7.
 - **DR1** was applied on 2026-11-26 ([CHANGELOG CL-09](../CHANGELOG.md#cl-09)). All 8 blockers were fixed (D1–D8). One wrong path in the traceability table (REQ-19) moved to DR4 as item 8.
 - **DR3** was applied on 2026-11-26 ([CHANGELOG CL-10](../CHANGELOG.md#cl-10)). All 5 items were applied. The `BoardColumn` rename missed 2 `Column.cards` references, which moved to DR4 as item 9.
+- **DR4** was applied on 2026-11-26 ([CHANGELOG CL-11](../CHANGELOG.md#cl-11)). All 9 items were applied. A coverage script (below) shows the new per-criterion traceability table maps **186 of 187** criteria; **REQ-2.6** (password < 8 → `400`) is missing. That gap is fixed in DR5.
+
+### Traceability coverage check (script)
+
+Kiro's summary claimed full coverage, so the claim was checked mechanically. The script:
+
+1. parses every `REQ-n` section in `requirements.md` and counts its numbered criteria;
+2. parses every `| REQ-n | ranges |` row of the design's traceability table;
+3. reports criteria that are missing, mapped twice, or point to a criterion that does not exist.
+
+Result after DR4: 187 criteria, 186 covered exactly once, missing `2.6`, 0 duplicated, 0 nonexistent.
+
+### DR5 — Close the last traceability gap
+
+```text
+Design refinement round 5. One fix only:
+REQ-2.6 (IF the password is shorter than 8 characters, THEN THE API SHALL return 400) is not
+mapped in the traceability table. Change the row "REQ-2 | 1–4 | User Registration — API" to
+"REQ-2 | 1–4, 6 | User Registration — API" (implemented by POST /api/auth/register +
+RegisterSchema validate.Length(min=8)).
+Change nothing else.
+```
 
 ### DR1 — Blockers
 

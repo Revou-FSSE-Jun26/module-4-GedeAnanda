@@ -21,6 +21,7 @@ Raw AI output is committed **before** each refinement, so every entry can be ver
 | [CL-08](#cl-08) | `design.md` | DR2 | Kiro (Spec) | Defined response (dump) schemas; position/reorder responses carry rebalance info; tightened query and order validation |
 | [CL-09](#cl-09) | `design.md` | DR1 | Kiro (Spec) | Fixed 8 blockers: error handlers, JWT error envelope, notification FK cascade, middleware location, Header on auth pages, repo roots, soft-delete eager loading |
 | [CL-10](#cl-10) | `design.md` | DR3 | Kiro (Spec) | Timezone-aware timestamps, FK indexes, `Column` → `BoardColumn`, Railway URL normalization, frontend `.env.example` |
+| [CL-11](#cl-11) | `design.md` | DR4 | Kiro (Spec) | Per-criterion traceability table, missing form components, `AppError` pattern, test-strategy and reference fixes |
 
 ---
 
@@ -417,3 +418,40 @@ The FLOAT rebalance also had a client-side flaw: after a server rebalance, the b
 - **Verified by search.** No `utcnow` remains, there are 16 `timezone=True` columns, all 6 indexes are present, and the normalization comment and `.env.example` entry are in place.
 - **Incomplete rename.** `BoardColumn` was applied to the model and its relationship strings, but two prose references still say `Column.cards`: the `boards/service.py` comment and the REQ-19 traceability row. A blind rename usually misses code-like text inside comments and tables. Moved to DR4 as item 9.
 - **Not a mistake.** The frontend TypeScript type is still called `Column` (`types/index.ts`). It is a separate namespace from the Python model, so it was intentionally left alone.
+
+---
+
+## CL-11
+
+**Design DR4: per-criterion traceability and consistency fixes**
+
+| Field | Value |
+| ----- | ----- |
+| Date | 2026-11-26 |
+| Artifact | `.kiro/specs/revotask-mvp/design.md` |
+| Tool | Kiro, Spec mode |
+| Trigger | Design review findings D18–D23, plus leftovers from DR1 to DR3 |
+| Prompt | DR4 in [design-v1-review.md](reviews/design-v1-review.md#dr4--traceability-and-consistency) |
+| Commits | before `aeee52e` → after `2e79f87` |
+
+**Trigger.** The rubric requires that *every acceptance criterion* maps to a Flask route or Next.js page. The v1 table mapped whole requirements, so mixed requirements such as REQ-10 (API and UI) had no criterion-level mapping. Several smaller inconsistencies had also accumulated across rounds.
+
+**Before → After.**
+
+| Item | Before | After |
+| ---- | ------ | ----- |
+| Traceability table | 32 rows, one per REQ, e.g. `REQ-10 \| Comments \| POST/GET … + CommentList.tsx` | Rows per criterion range, with a new **Criteria** column, e.g. `REQ-5 \| 6 \| Board 404 for non-members \| boards service.py membership check` |
+| Form components (REQ-32.5) | No create-board, add-column or add-card component | `CreateBoardModal.tsx` (calls `router.refresh()`), `AddColumnForm.tsx`, `AddCardForm.tsx`, all inside `BaseModal` |
+| Property tests | Hypothesis, a dependency not in the tech stack | Removed; Properties 1–3 tested with ordinary pytest cases |
+| Rollback test | Attributed to `useErrorHandler` | Attributed to `useDragAndDrop` (mocked API error → position restored + toast); `useErrorHandler` tests status → toast mapping |
+| Property 6 | "Validates: Requirements 2.4, 14.1, 18.1" | 18.1 replaced (it is now "Covered by REQ-2.4") |
+| Business errors | "routes.py catches them" (try/except in each route) | Service raises `AppError(status_code, message)`; one app-factory handler renders the envelope |
+| `GET /api/cards` errors | `401`, `404` only | Adds `400` when neither `assignee` nor `board_id` is given |
+| REQ-19 path | `backend/boards/service.py` | `backend/app/blueprints/boards/service.py` |
+| Rename leftovers | 2 × `Column.cards` | `BoardColumn.cards` |
+
+**Review of the result.**
+
+- **All 9 items applied**, each confirmed by searching the updated document.
+- **Coverage was verified, not trusted.** A script compared the 187 criteria in `requirements.md` with every range in the new table ([method](reviews/design-v1-review.md#traceability-coverage-check-script)). Result: **186 of 187** covered exactly once, 0 duplicates, 0 references to nonexistent criteria, and **REQ-2.6 missing** (the password-length `400` added in R6). Kiro's summary did not mention the gap.
+- **Fix.** A one-line refinement round, DR5, adds `6` to the REQ-2 API row.
