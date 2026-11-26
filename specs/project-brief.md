@@ -2,7 +2,7 @@
 
 | Field   | Value                                                                 |
 | ------- | --------------------------------------------------------------------- |
-| Version | 0.1 (draft)                                                           |
+| Version | 0.2 (draft)                                                           |
 | Date    | 2026-11-26                                                            |
 | Status  | Draft — input for Kiro spec generation (`requirements.md` → `design.md` → `tasks.md`) |
 | Scope   | Flask REST API + Next.js web app, both deployed publicly              |
@@ -322,8 +322,70 @@ Shared building blocks:
 
 ---
 
+## Appendix A — Canonical API Endpoint Catalog
+
+Paths and methods below are **fixed**. They come from the assignment, plus the additions decided in §5. Generated specs and code must use these exact paths. Do not nest them differently, rename them, or merge two endpoints into one.
+
+| Blueprint | Method | Path | Purpose | Source |
+| --------- | ------ | ---- | ------- | ------ |
+| *(app factory)* | GET | `/api/health` | Liveness and database check | §5.3 |
+| auth | POST | `/api/auth/register` | Register a user with a hashed password | Assignment |
+| auth | POST | `/api/auth/login` | Authenticate; return a JWT with an expiry | Assignment |
+| boards | POST | `/api/boards` | Create a board (creator becomes admin) | Assignment |
+| boards | GET | `/api/boards` | List the current user's boards | Assignment |
+| boards | GET | `/api/boards/<id>` | Board with columns and cards nested | Assignment |
+| boards | PATCH | `/api/boards/<id>` | Rename a board | Assignment |
+| boards | DELETE | `/api/boards/<id>` | Delete a board | Assignment |
+| boards | GET | `/api/boards/<id>/members` | List members | §5.2 |
+| boards | POST | `/api/boards/<id>/members` | Add a member by email (`email`, `role`) | §5.2 |
+| boards | PATCH | `/api/boards/<id>/members/<user_id>` | Change a member's role | §5.2 |
+| boards | DELETE | `/api/boards/<id>/members/<user_id>` | Remove a member | §5.2 |
+| columns | POST | `/api/boards/<id>/columns` | Add a column | Assignment |
+| columns | PATCH | `/api/columns/<id>` | Rename a column (and set `is_done`) | Assignment |
+| columns | DELETE | `/api/columns/<id>` | Delete a column (admin only) | Assignment |
+| columns | PATCH | `/api/boards/<id>/columns/reorder` | Move one column. Body: `column_id` (UUID), `order` (float > 0) | Assignment |
+| cards | GET | `/api/cards` | Query: `assignee=me`, `board_id`, `q` | §5.1 |
+| cards | POST | `/api/columns/<id>/cards` | Create a card in a column | Assignment |
+| cards | PATCH | `/api/cards/<id>` | Update card details | Assignment |
+| cards | DELETE | `/api/cards/<id>` | Soft-delete a card | Assignment |
+| cards | PATCH | `/api/cards/<id>/position` | Move a card. `CardPositionSchema`: `column_id` (UUID), `order` (float > 0) | Assignment |
+| comments | POST | `/api/cards/<id>/comments` | Add a comment | Assignment |
+| comments | GET | `/api/cards/<id>/comments` | List a card's comments | Assignment |
+| comments | PATCH | `/api/comments/<id>` | Edit a comment (owner only) | Assignment |
+| comments | DELETE | `/api/comments/<id>` | Delete a comment (owner only) | Assignment |
+| notifications | GET | `/api/notifications?page=&per_page=` | Paginated notifications for the current user | Assignment |
+| notifications | PATCH | `/api/notifications/<id>/read` | Mark one notification as read (own notifications only) | Assignment |
+| analytics | GET | `/api/boards/<id>/analytics` | Cards per column, completed this week, member activity | Assignment |
+| users | GET | `/api/users/me` | Current user's profile, without the password | Assignment |
+| users | PATCH | `/api/users/me` | Update name and email only; a `password` field is rejected with `400` | Assignment |
+
+## Appendix B — Required Frontend Behaviors
+
+These come from the assignment. Every item needs at least one acceptance criterion so that `design.md` can map it to a page, component, hook or lib module.
+
+| Area | Required behavior |
+| ---- | ----------------- |
+| `/register` | Controlled inputs. Client-side validation before submit (required name, valid email format, minimum password length). Submits to `POST /api/auth/register` and shows field errors and API errors. |
+| `/login` | Submits to `POST /api/auth/login`. On success stores the token (§5.4) and redirects to `/`. On failure shows an error message. |
+| `/` Dashboard | Server Component. Lists the user's boards from `GET /api/boards` and has a create-board action. Shows an empty state when the user has no boards. |
+| `/boards/[id]` | Server Component rendering a Kanban layout: columns in `order`, cards in `order`. Supports adding columns and cards, the search box (§F8) and opening `CardDetailModal`. |
+| `CardDetailModal.tsx` | Client Component inside `BaseModal`. Shows and edits card fields and has the "Move to column" select (§5.10). Composes `CommentList.tsx` and a comment form that submits to `POST /api/cards/<id>/comments`. The user can edit and delete their own comments. |
+| `/my-tasks` | Cards from `GET /api/cards?assignee=me`, grouped by board name. Uses `BaseButton` and `BaseBadge`; no one-off buttons. |
+| `/profile` | Controlled inputs pre-filled from `AuthContext`. Submits to `PATCH /api/users/me`. Uses `BaseButton`. |
+| Header | Navigation, `NotificationBell` with the unread count, and logout. |
+| `components/shared` | `BaseButton` (variants: `primary`, `secondary`, `destructive`); `BaseBadge` (color variants); `BaseModal` (wrapper for all forms). |
+| `hooks/useDragAndDrop.ts` | Native HTML5 Drag and Drop API. On drop it calls `PATCH /api/cards/<id>/position`, updates local state optimistically, and restores the original position if the API returns an error. |
+| `hooks/useNotifications.ts` | Polls `GET /api/notifications` every 30 seconds and feeds `NotificationBell`. |
+| `hooks/useErrorHandler.ts` | Maps `ApiError.statusCode` to user-facing toast messages: `400` shows the validation message; `401` shows "session expired", clears the token and redirects to `/login`; `403` shows "not allowed"; `404` shows "not found"; `409` shows the conflict message; `5xx` shows a generic error. |
+| `lib/apiClient.ts` | Typed fetch wrapper. Reads its base URL from `NEXT_PUBLIC_API_BASE_URL` in Client Components and `API_BASE_URL` in Server Components. Attaches `Authorization: Bearer <token>` when a token exists. Throws `ApiError` on any non-2xx response. |
+| `lib/errors.ts` | `ApiError` class with `statusCode` and `message`. |
+| `lib/toast.ts` | Wraps `toast.success()`, `toast.error()` and `toast.loading()` from react-hot-toast. |
+
+---
+
 ### Document history
 
 | Version | Date | Change |
 | ------- | ---- | ------ |
 | 0.1 | 2026-11-26 | First draft, prepared with AI assistance (Claude Code) from the assignment text. Pending the author's review. |
+| 0.2 | 2026-11-26 | Added Appendix A (canonical endpoint catalog) and Appendix B (required frontend behaviors). Reason: the first Kiro `requirements.md` invented 5 endpoint paths and under-specified the frontend, because v0.1 did not list the assignment's exact routes or page behaviors. |
