@@ -77,6 +77,8 @@ Brief v0.1 never listed the assignment's exact routes or page behaviors, so Kiro
 - **R1** was applied on 2026-11-26 ([CHANGELOG CL-02](../CHANGELOG.md#cl-02)). Kiro edited outside the requested scope once, so the R2–R6 prompts say explicitly that other problems must be reported, not fixed.
 - **R2** was applied on 2026-11-26 ([CHANGELOG CL-03](../CHANGELOG.md#cl-03)). It added REQ-25 to REQ-32 (46 criteria), only appended, and left existing criteria untouched. Findings #20–#28 come from reviewing R2 and are handled in R6, after brief v0.3.
 - **R3** was applied on 2026-11-26 ([CHANGELOG CL-04](../CHANGELOG.md#cl-04)). All 7 items were applied as appended criteria (10 additions, 0 deletions). Finding #29 is a gap in the R3 prompt itself and was added to R4.
+- **R4** was applied on 2026-11-26 ([CHANGELOG CL-05](../CHANGELOG.md#cl-05)). All 6 items were applied: 7 lines rewritten, nothing else touched.
+- **R5** was applied on 2026-11-26 ([CHANGELOG CL-06](../CHANGELOG.md#cl-06)). All 5 duplicates were replaced with "Covered by" references, and each reference was verified. Carried into the design review: `design.md` must name Werkzeug as the password-hashing library, because the removed REQ-18.1 was the only place it appeared.
 
 ## Refinement prompts
 

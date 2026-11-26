@@ -15,6 +15,8 @@ Raw AI output is committed **before** each refinement, so every entry can be ver
 | [CL-02](#cl-02) | `requirements.md` | R1 | Kiro (Spec) | Aligned 5 endpoint paths with the assignment; added the column reorder endpoint |
 | [CL-03](#cl-03) | `requirements.md` | R2 | Kiro (Spec) | Added 8 frontend requirements (46 criteria) for pages, hooks, `lib/` and shared components |
 | [CL-04](#cl-04) | `requirements.md` | R3 | Kiro (Spec) | Added 10 missing criteria required by the assignment (validation, 401/404/409 cases, pagination) |
+| [CL-05](#cl-05) | `requirements.md` | R4 | Kiro (Spec) | Fixed a self-contradicting trigger, untestable wording, empty-list edge cases and an invalid reference |
+| [CL-06](#cl-06) | `requirements.md` | R5 | Kiro (Spec) | Removed 5 duplicated criteria; NFR requirements now reference the feature criteria |
 
 ---
 
@@ -143,7 +145,7 @@ Example, REQ-28.6 and 28.7 (new):
 | Tool | Kiro, Spec mode |
 | Trigger | Review findings #8–#12, #19 |
 | Prompt | R3 in [requirements-v1-review.md](reviews/requirements-v1-review.md#r3--missing-criteria-required-by-the-assignment) |
-| Commits | before `b968ca0` → after: the R3 refinement commit |
+| Commits | before `b968ca0` → after `8f48bfb` |
 
 **Trigger.** Some behaviors the assignment or rubric require explicitly had no acceptance criterion:
 
@@ -177,3 +179,73 @@ A behavior without a criterion has no test, so these would have been missed in `
 - **Rubric check.** REQ-10 now specifies every status code the rubric's comment tests need: `201` (10.1), `400` (10.2), `401` (10.7) and `403` (10.6), plus `404` for non-members (10.8).
 - **Improvement over the prompt.** For REQ-16.10 the prompt said "demotes the last remaining admin"; Kiro wrote "a role that would leave the board with no remaining admin", which covers the same case more precisely. Accepted.
 - **Gap in our own prompt (finding #29).** The prompt only said "page < 1", so `?page=abc` is still undefined. This was the author's mistake, not Kiro's, and it is fixed in R4.
+
+---
+
+## CL-05
+
+**Requirements R4: fix logic and testability defects**
+
+| Field | Value |
+| ----- | ----- |
+| Date | 2026-11-26 |
+| Artifact | `.kiro/specs/revotask-mvp/requirements.md` |
+| Tool | Kiro, Spec mode |
+| Trigger | Review findings #13–#17, #29 |
+| Prompt | R4 in [requirements-v1-review.md](reviews/requirements-v1-review.md#r4--logic-and-testability-defects) |
+| Commits | before `8f48bfb` → after `54708f4` |
+
+**Trigger.** Some criteria existed but could not be implemented or tested as written. One contradicted itself, some were vague, two broke on an empty list, and one pointed at a feature ID that does not exist.
+
+**Before → After.**
+
+| Criterion | Before | After | Defect |
+| --------- | ------ | ----- | ------ |
+| REQ-9.7 | WHEN a card move request **succeeds**, THE Web SHALL update the UI **before the API response is received** | WHEN **the user drops a card on a column**, THE Web SHALL update the UI before the API response is received | Self-contradiction: success is only known *after* the response |
+| REQ-1.2 | IF the database is unreachable, THEN return **a non-`200` status code** | … THEN return HTTP **`503`** with `{ "error": "database unavailable" }` | Untestable: a test needs an exact code |
+| REQ-6.1 | Column `order` = last column's order + 1024 | `1024` if the board has no columns, otherwise last + 1024 | Undefined for an empty board |
+| REQ-7.1 | Card `order` = last card's order + 1024 | `1024` if the column has no cards, otherwise last + 1024 | Undefined for an empty column |
+| REQ-10.3 | "the list of **non-deleted-card comments**" | "the card's comments in chronological order; IF the card is soft-deleted, THEN `404`" | Ambiguous wording |
+| REQ-11.9 | IF `page` is **less than 1** … | IF `page` is **not an integer ≥ 1** … | `?page=abc` was undefined (a gap in our own R3 prompt) |
+| REQ-1 reference | `F — Infrastructure (§5.3)` | `§5.3, NFR-4` | "F — Infrastructure" is not a valid feature ID |
+
+**Review of the result.**
+
+- **Complete and scoped.** All 6 items were applied. The diff rewrites exactly 7 lines and touches nothing else.
+- **Why REQ-9.7 matters.** Written as before, the optimistic update could only run after the API had succeeded, which is the opposite of optimistic. `useDragAndDrop` and its test would have been built on a contradiction.
+- **Minor style note, accepted.** For REQ-10.3 the prompt said "add" a `404` rule, and Kiro merged it into the same criterion instead of appending a new one. The behavior is the same and numbering is preserved.
+- **Still open.** REQ-9.7 is still duplicated by REQ-19.3. That is intentional; R5 handles all duplicates together.
+
+---
+
+## CL-06
+
+**Requirements R5: remove duplicated criteria**
+
+| Field | Value |
+| ----- | ----- |
+| Date | 2026-11-26 |
+| Artifact | `.kiro/specs/revotask-mvp/requirements.md` |
+| Tool | Kiro, Spec mode |
+| Trigger | Review finding #18 |
+| Prompt | R5 in [requirements-v1-review.md](reviews/requirements-v1-review.md#r5--duplicated-criteria) |
+| Commits | before `54708f4` → after `6c513c3` |
+
+**Trigger.** Five behaviors were specified twice, once in a feature requirement and once in an NFR requirement. Each duplicate would get its own test, and the two copies could drift apart. This had already happened once: R4 fixed the trigger in REQ-9.7 but left the older wording in REQ-19.3.
+
+**Before → After.**
+
+| Criterion | Before (duplicate) | After | Single source |
+| --------- | ------------------ | ----- | ------------- |
+| REQ-18.1 | THE API SHALL hash all passwords … using Werkzeug's password hashing and SHALL NOT store or return passwords in plain text | Covered by REQ-2.4 | REQ-2.1, 2.4 |
+| REQ-18.3 | THE API SHALL enforce JWT authentication on every endpoint except register, login and health | Covered by REQ-4.2 | REQ-4.2 |
+| REQ-19.3 | WHEN a card move is initiated, THE Web SHALL update the UI before the API response | Covered by REQ-9.7 | REQ-9.7 |
+| REQ-21.1 | IF a card move API request fails, THEN restore the card and show an error toast | Covered by REQ-9.8 | REQ-9.8 |
+| REQ-21.3 | THE API SHALL always return the JSON envelope and never raw HTML errors or stack traces | Covered by REQ-17.5 | REQ-17.5 |
+
+**Review of the result.**
+
+- **Complete and scoped.** The diff rewrites exactly 5 lines, and numbering is preserved, so existing references still resolve.
+- **References checked.** Each "Covered by" target was read and holds the full behavior: REQ-2.1 and 2.4 (hash, no plain text), REQ-4.2 (the same three public endpoints), REQ-9.7 and 9.8 (optimistic update, then rollback with a toast) and REQ-17.5 (no HTML errors, JSON `500`).
+- **Information lost, now tracked.** The removed REQ-18.1 was the only place in the requirements that named **Werkzeug** as the hashing library. That is an implementation choice, so it belongs in `design.md`, not here. It is added to the design review checklist so it does not silently disappear.
+- **Result.** Each behavior now has exactly one criterion, so each gets exactly one test in `tasks.md`.
