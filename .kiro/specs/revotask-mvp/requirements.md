@@ -413,3 +413,137 @@ RevoTask is a Trello-like task management web application consisting of two depl
 1. THE Web SHALL associate every form input with a visible label element.
 2. WHEN a modal is open, THE Web SHALL close the modal when the Escape key is pressed and SHALL return focus to the element that triggered the modal.
 3. THE Web SHALL convey status information in every badge using text in addition to colour, so that the information is not lost for users who cannot distinguish colours.
+
+---
+
+### REQ-25: Registration Page
+
+**Reference:** F1, Appendix B (`/register`)
+
+**User Story:** As a Guest, I want a registration form with client-side validation, so that I receive immediate feedback before my data is sent to the API.
+
+#### Acceptance Criteria
+
+1. THE `/register` page SHALL render all form inputs as controlled inputs whose values are managed by React state.
+2. WHEN the user attempts to submit the registration form, THE `/register` page SHALL validate that the name field is not empty before sending any request to the API.
+3. WHEN the user attempts to submit the registration form, THE `/register` page SHALL validate that the email field matches a valid email format before sending any request to the API.
+4. WHEN the user attempts to submit the registration form, THE `/register` page SHALL validate that the password field meets the minimum required length before sending any request to the API.
+5. WHEN client-side validation fails on a field, THE `/register` page SHALL display an inline error message for each failing field without submitting the form.
+6. WHEN all client-side validation passes, THE `/register` page SHALL submit the form by sending `POST /api/auth/register` with the name, email, and password.
+7. IF the API returns an error response, THEN THE `/register` page SHALL display the error message from the `{ "error": "..." }` envelope to the user.
+
+---
+
+### REQ-26: Dashboard Page
+
+**Reference:** F2, Appendix B (`/`)
+
+**User Story:** As a logged-in user, I want a dashboard that lists my boards and lets me create new ones, so that I can navigate my work quickly.
+
+#### Acceptance Criteria
+
+1. THE `/` dashboard page SHALL be implemented as a Next.js Server Component.
+2. WHEN the `/` dashboard page renders, THE `/` dashboard page SHALL fetch the user's boards by calling `GET /api/boards` on the server before the page is sent to the client.
+3. WHEN the user has at least one board, THE `/` dashboard page SHALL render a list of those boards.
+4. WHEN the user has no boards, THE `/` dashboard page SHALL render an empty state that communicates that no boards exist yet.
+5. THE `/` dashboard page SHALL provide a create-board action that sends `POST /api/boards` to create a new board.
+
+---
+
+### REQ-27: Board Detail Page
+
+**Reference:** F3, F4, F8, Appendix B (`/boards/[id]`)
+
+**User Story:** As a Member or Admin, I want the board page to display columns and cards in order and support adding columns and cards, so that I can manage work visually.
+
+#### Acceptance Criteria
+
+1. THE `/boards/[id]` page SHALL be implemented as a Next.js Server Component with client-side islands for interactive features.
+2. WHEN the `/boards/[id]` page renders, THE `/boards/[id]` page SHALL display columns sorted in ascending `order`.
+3. WHEN the `/boards/[id]` page renders, THE `/boards/[id]` page SHALL display each column's non-deleted cards sorted in ascending `order`.
+4. THE `/boards/[id]` page SHALL provide an add-column action that sends `POST /api/boards/<id>/columns` with a column name.
+5. THE `/boards/[id]` page SHALL provide a per-column add-card action that sends `POST /api/columns/<id>/cards` with at minimum a card title.
+6. WHEN a card search query is active, THE `/boards/[id]` page SHALL render only the cards whose titles match the query, hiding non-matching cards in place without removing their columns.
+7. WHEN a user clicks a card, THE `/boards/[id]` page SHALL open `CardDetailModal` for that card.
+
+---
+
+### REQ-28: Card Detail Modal
+
+**Reference:** F4, F5, Appendix B (`CardDetailModal.tsx`)
+
+**User Story:** As a Member or Admin, I want a card detail modal that lets me edit the card and manage comments, so that all card-related actions are accessible in one place.
+
+#### Acceptance Criteria
+
+1. THE `CardDetailModal` component SHALL be rendered inside `BaseModal`.
+2. THE `CardDetailModal` component SHALL display editable fields for the card's title, description, assignee, due date, and priority.
+3. WHEN a user edits one or more card fields and confirms the change, THE `CardDetailModal` component SHALL send `PATCH /api/cards/<id>` with the updated fields.
+4. THE `CardDetailModal` component SHALL compose the `CommentList` component, which displays existing comments for the card in chronological order.
+5. THE `CardDetailModal` component SHALL include a comment form that sends `POST /api/cards/<id>/comments` when submitted.
+6. WHEN the current user is the author of a comment, THE `CommentList` component SHALL display inline edit and delete controls for that comment.
+7. WHEN the current user is not the author of a comment, THE `CommentList` component SHALL NOT display edit or delete controls for that comment.
+8. WHEN a user edits their own comment and confirms the change, THE `CommentList` component SHALL send `PATCH /api/comments/<id>` with the updated content.
+9. WHEN a user deletes their own comment, THE `CommentList` component SHALL send `DELETE /api/comments/<id>`.
+
+---
+
+### REQ-29: Header Component
+
+**Reference:** F6, Appendix B (Header)
+
+**User Story:** As a logged-in user, I want the header to show navigation links, my notification count, and a logout control, so that I can move between pages and act on key information from anywhere.
+
+#### Acceptance Criteria
+
+1. THE `Header` component SHALL render navigation links to the application's main pages.
+2. THE `Header` component SHALL render the `NotificationBell` component, which displays the current unread notification count sourced from the `useNotifications` hook.
+3. THE `Header` component SHALL render a logout control that, when activated, executes the logout action described in REQ-4.3.
+
+---
+
+### REQ-30: useErrorHandler Hook
+
+**Reference:** Appendix B (`hooks/useErrorHandler.ts`)
+
+**User Story:** As a developer, I want a centralised error handler hook that maps API errors to user-facing messages, so that every component shows consistent feedback without duplicating error-handling logic.
+
+#### Acceptance Criteria
+
+1. THE `useErrorHandler` hook SHALL accept an `ApiError` and map its `statusCode` to a user-facing action.
+2. WHEN the `ApiError` has status code `400`, THE `useErrorHandler` hook SHALL call `lib/toast` to display the validation message from the error envelope.
+3. WHEN the `ApiError` has status code `401`, THE `useErrorHandler` hook SHALL call `lib/toast` to display "session expired", clear the `revotask_token` cookie, clear AuthContext, and redirect the user to `/login`.
+4. WHEN the `ApiError` has status code `403`, THE `useErrorHandler` hook SHALL call `lib/toast` to display "not allowed".
+5. WHEN the `ApiError` has status code `404`, THE `useErrorHandler` hook SHALL call `lib/toast` to display "not found".
+6. WHEN the `ApiError` has status code `409`, THE `useErrorHandler` hook SHALL call `lib/toast` to display the conflict message from the error envelope.
+7. WHEN the `ApiError` has a status code in the range `500`–`599`, THE `useErrorHandler` hook SHALL call `lib/toast` to display a generic error message.
+
+---
+
+### REQ-31: lib/apiClient Module
+
+**Reference:** Appendix B (`lib/apiClient.ts`)
+
+**User Story:** As a developer, I want a typed fetch wrapper that handles base URLs, authentication headers, and error normalisation, so that all API calls follow a consistent pattern.
+
+#### Acceptance Criteria
+
+1. WHEN `lib/apiClient` is used in a Client Component, THE `lib/apiClient` module SHALL read the API base URL from the `NEXT_PUBLIC_API_BASE_URL` environment variable.
+2. WHEN `lib/apiClient` is used in a Server Component, THE `lib/apiClient` module SHALL read the API base URL from the `API_BASE_URL` environment variable.
+3. WHEN a JWT token is available, THE `lib/apiClient` module SHALL attach an `Authorization: Bearer <token>` header to every outgoing request.
+4. WHEN an API response has a non-2xx HTTP status code, THE `lib/apiClient` module SHALL throw an `ApiError` (defined in `lib/errors`) populated with the `statusCode` from the HTTP response and the `message` from the `{ "error": "..." }` envelope.
+
+---
+
+### REQ-32: Shared UI Components
+
+**Reference:** Appendix B (`components/shared`)
+
+**User Story:** As a developer, I want standardised shared components that enforce consistent styling variants, so that the UI is cohesive and new screens can be built without one-off elements.
+
+#### Acceptance Criteria
+
+1. THE `BaseButton` component SHALL support a `variant` prop with the values `primary`, `secondary`, and `destructive`, and SHALL render distinct visual styles for each variant.
+2. THE `BaseBadge` component SHALL support color variants corresponding to the card priority values `low`, `medium`, and `high`.
+3. THE `/my-tasks` page SHALL use `BaseButton` for every button element and SHALL NOT introduce one-off button elements.
+4. THE `/profile` page SHALL use `BaseButton` for every button element and SHALL NOT introduce one-off button elements.
