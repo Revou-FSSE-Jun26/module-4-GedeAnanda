@@ -3,32 +3,10 @@
 import uuid
 
 import pytest
-from sqlalchemy import event
-
 from app.extensions import db
 from app.models import Board, BoardColumn, BoardMember, Card, Comment, Notification, User
 from tests.conftest import make_board
 from tests.helpers import add_card, add_column, assert_error
-
-
-@pytest.fixture
-def count_queries(app):
-    """Return a function that runs a callable and reports how many SQL statements it sent."""
-
-    def run(action):
-        statements = []
-
-        def record(conn, cursor, statement, parameters, context, executemany):
-            statements.append(statement)
-
-        event.listen(db.engine, "before_cursor_execute", record)
-        try:
-            result = action()
-        finally:
-            event.remove(db.engine, "before_cursor_execute", record)
-        return result, len(statements)
-
-    return run
 
 
 # --- POST /api/boards ----------------------------------------------------------

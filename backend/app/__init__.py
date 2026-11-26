@@ -34,9 +34,10 @@ def create_app(config: Config | None = None) -> Flask:
 def register_blueprints(app: Flask) -> None:
     from app.blueprints.auth.routes import auth_bp
     from app.blueprints.boards.routes import boards_bp
+    from app.blueprints.cards.routes import cards_bp
     from app.blueprints.columns.routes import columns_bp
 
-    for blueprint in (auth_bp, boards_bp, columns_bp):
+    for blueprint in (auth_bp, boards_bp, columns_bp, cards_bp):
         app.register_blueprint(blueprint)
 
 

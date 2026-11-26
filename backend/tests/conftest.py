@@ -6,6 +6,8 @@ SQLite drops timezone info and does not enforce ``ON DELETE SET NULL``.
 
 import pytest
 from flask_jwt_extended import create_access_token
+from sqlalchemy import event
+from werkzeug.security import generate_password_hash
 
 from app import create_app
 from app.config import TestConfig
@@ -44,9 +46,12 @@ def client(app):
     return app.test_client()
 
 
+# Hashed once: hashing is deliberately slow, and every test creates users.
+TEST_PASSWORD_HASH = generate_password_hash(TEST_PASSWORD)
+
+
 def make_user(name: str, email: str) -> User:
-    user = User(name=name, email=email)
-    user.set_password(TEST_PASSWORD)
+    user = User(name=name, email=email, password_hash=TEST_PASSWORD_HASH)
     db.session.add(user)
     db.session.commit()
     return user
@@ -93,3 +98,23 @@ def auth_headers(app):
         return {"Authorization": f"Bearer {token}"}
 
     return build
+
+
+@pytest.fixture
+def count_queries(app):
+    """Return a function that runs a callable and reports how many SQL statements it sent."""
+
+    def run(action):
+        statements = []
+
+        def record(conn, cursor, statement, parameters, context, executemany):
+            statements.append(statement)
+
+        event.listen(db.engine, "before_cursor_execute", record)
+        try:
+            result = action()
+        finally:
+            event.remove(db.engine, "before_cursor_execute", record)
+        return result, len(statements)
+
+    return run
