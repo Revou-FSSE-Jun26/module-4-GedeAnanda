@@ -48,7 +48,7 @@ Brief v0.1 never listed the assignment's exact routes or page behaviors, so Kiro
 | 4 | REQ-10.4, 10.5 | `/api/cards/<card_id>/comments/<comment_id>`, but the assignment says `PATCH`/`DELETE /api/comments/<id>` | Wrong path | R1 |
 | 5 | REQ-11.6 | `PATCH /api/notifications/<id>`, but the assignment says `PATCH /api/notifications/<id>/read` | Wrong path | R1 |
 | 6 | (none) | No requirements for the Dashboard page, Board Detail rendering, the CardDetailModal comment UI (add and edit), Register client-side validation, `useErrorHandler`, `apiClient`/`ApiError`, `BaseButton` variants, or the header with `NotificationBell` | Frontend gap | R2 |
-| 7 | REQ-14 | Nothing says `PATCH /api/users/me` must reject a `password` field | Missing criterion | R3 |
+| 7 | REQ-14 | Nothing says `PATCH /api/users/me` must reject a `password` field | Missing criterion | R1 (Kiro added it without being asked; see CHANGELOG CL-02) |
 | 8 | REQ-11 | The `page` and `per_page` query parameters are not specified, and there is no rule for invalid values | Missing criterion | R3 |
 | 9 | REQ-11 | No rule for marking another user's notification as read (should be `404`) | Missing criterion | R3 |
 | 10 | REQ-10 | No explicit `401` criterion for comments (the rubric's comment tests need 201, 400, 401 and 403); no `404` for non-members | Missing criterion | R3 |
@@ -60,6 +60,9 @@ Brief v0.1 never listed the assignment's exact routes or page behaviors, so Kiro
 | 16 | REQ-1 | The reference "F — Infrastructure" is not a valid feature ID | Traceability | R4 |
 | 17 | REQ-10.3 | "non-deleted-card comments" is ambiguous | Vague | R4 |
 | 18 | REQ-9.7 / 19.3, 9.8 / 21.1, 17.5 / 21.3, 2.4 / 18.1, 4.2 / 18.3 | The same behavior is specified twice, which leads to duplicate tests and lets the copies drift apart | Duplication | R5 |
+| 19 | REQ-6.7 | The new reorder criterion (added in R1) has no error cases | Missing criterion | R3 |
+
+**Round status:** R1 was applied on 2026-11-26 and is logged as [CHANGELOG CL-02](../CHANGELOG.md#cl-02). Kiro edited outside the requested scope once, so the R2–R5 prompts below now say explicitly that other problems must be reported, not fixed.
 
 ## Refinement prompts
 
@@ -111,7 +114,8 @@ Add new requirements (continue the REQ numbering) with EARS criteria for:
 - components/shared: BaseButton variants primary/secondary/destructive, BaseBadge color
   variants; My Tasks and Profile must use BaseButton instead of one-off buttons
 Every criterion must name the page, component, hook or lib file it applies to.
-Do not modify existing requirements. List the new REQ IDs at the end.
+Do not modify existing requirements. If you notice any other problem, report it at the
+end instead of fixing it. List the new REQ IDs at the end.
 ```
 
 ### R3 — Missing criteria required by the assignment
@@ -120,7 +124,8 @@ Do not modify existing requirements. List the new REQ IDs at the end.
 Refinement round 3 — missing criteria required by the assignment.
 Append these criteria to the END of the existing requirements (do not renumber
 existing criteria and do not create new REQ IDs):
-- REQ-14: IF the PATCH /api/users/me body contains a password field, THEN THE API SHALL return 400.
+- REQ-6: IF the reorder column_id is not a valid UUID or is not a column on that board,
+  THEN THE API SHALL return 400; IF order is not a float greater than 0, THEN THE API SHALL return 400.
 - REQ-11: GET /api/notifications reads the page and per_page query parameters;
   IF page < 1 or per_page is not an integer from 1 to 100, THEN THE API SHALL return 400.
 - REQ-11: IF a user marks a notification that belongs to another user as read, THEN THE API SHALL return 404.
@@ -130,7 +135,8 @@ existing criteria and do not create new REQ IDs):
   IF column_id is not a valid UUID, THEN THE API SHALL return 400.
 - REQ-16: IF the email already belongs to a member of the board, THEN THE API SHALL return 409;
   IF an Admin demotes the last remaining admin via PATCH, THEN THE API SHALL return 400.
-Change nothing else. List every edit at the end.
+Change nothing else. If you notice any other problem, report it at the end instead of
+fixing it. List every edit at the end.
 ```
 
 ### R4 — Logic and testability defects
@@ -146,7 +152,8 @@ Refinement round 4 — logic and testability defects. Fix exactly these:
 - REQ-1: the reference "F — Infrastructure" is not a valid ID; use "§5.3, NFR-4".
 - REQ-10.3: replace "non-deleted-card comments" with "the card's comments in chronological
   order", and add: IF the card is soft-deleted, THEN THE API SHALL return 404.
-Change nothing else. List every edit at the end.
+Change nothing else. If you notice any other problem, report it at the end instead of
+fixing it. List every edit at the end.
 ```
 
 ### R5 — Duplicated criteria
@@ -161,5 +168,6 @@ which creates duplicate tests and lets the copies drift apart:
 - REQ-4.2 and REQ-18.3 (JWT required on all endpoints)
 Keep the behavior in the feature requirement. In the NFR requirement, replace the duplicate
 with "Covered by REQ-x.y" and keep only measurable NFR targets.
-List every edit at the end.
+Change nothing else. If you notice any other problem, report it at the end instead of
+fixing it. List every edit at the end.
 ```
