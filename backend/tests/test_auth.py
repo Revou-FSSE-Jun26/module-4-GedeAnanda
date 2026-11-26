@@ -9,18 +9,11 @@ from flask_jwt_extended import decode_token
 from app.extensions import db
 from app.models import User
 from tests.conftest import TEST_PASSWORD
+from tests.helpers import assert_error
 
 REGISTER = "/api/auth/register"
 LOGIN = "/api/auth/login"
 VALID = {"name": "Dana New", "email": "dana@example.com", "password": "password123"}
-
-
-def assert_error(res, status):
-    assert res.status_code == status
-    body = res.get_json()
-    assert set(body) == {"error"}
-    assert isinstance(body["error"], str) and body["error"]
-    return body["error"]
 
 
 # --- POST /api/auth/register ---------------------------------------------------
