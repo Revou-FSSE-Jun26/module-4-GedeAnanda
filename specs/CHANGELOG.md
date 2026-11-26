@@ -20,6 +20,7 @@ Raw AI output is committed **before** each refinement, so every entry can be ver
 | [CL-07](#cl-07) | `requirements.md` | R6 | Kiro (Spec) | Closed 9 gaps found while reviewing R2; requirements accepted (32 REQs, 187 criteria) |
 | [CL-08](#cl-08) | `design.md` | DR2 | Kiro (Spec) | Defined response (dump) schemas; position/reorder responses carry rebalance info; tightened query and order validation |
 | [CL-09](#cl-09) | `design.md` | DR1 | Kiro (Spec) | Fixed 8 blockers: error handlers, JWT error envelope, notification FK cascade, middleware location, Header on auth pages, repo roots, soft-delete eager loading |
+| [CL-10](#cl-10) | `design.md` | DR3 | Kiro (Spec) | Timezone-aware timestamps, FK indexes, `Column` → `BoardColumn`, Railway URL normalization, frontend `.env.example` |
 
 ---
 
@@ -384,3 +385,35 @@ The FLOAT rebalance also had a client-side flaw: after a server rebalance, the b
 - **Scope respected.** Most of the diff (115 additions, 106 deletions) is path rewrites for D7. Every deletion outside the targeted sections was checked: they are only folder-tree lines moved under the new roots.
 - **One mistake introduced.** The REQ-19 traceability row now points to `backend/boards/service.py`, which skips `app/blueprints/`. Moved to DR4 (item 8).
 - **Why these were not caught by Kiro.** Kiro's own end-of-round summaries never flagged any of D1–D8. Each needs knowledge of library behavior (Marshmallow, Flask-JWT-Extended, Next.js file conventions, PostgreSQL FK semantics) that a document-level consistency check does not catch.
+
+---
+
+## CL-10
+
+**Design DR3: harden the data layer**
+
+| Field | Value |
+| ----- | ----- |
+| Date | 2026-11-26 |
+| Artifact | `.kiro/specs/revotask-mvp/design.md` |
+| Tool | Kiro, Spec mode |
+| Trigger | Design review findings D14–D17 |
+| Prompt | DR3 in [design-v1-review.md](reviews/design-v1-review.md#dr3--data-layer) |
+| Commits | before `2c28f1a` → after `aeee52e` |
+
+**Trigger.** The models would have worked on day one but caused slow queries, timezone bugs and a failed first deploy.
+
+**Before → After.**
+
+| # | Before | Problem | After |
+| - | ------ | ------- | ----- |
+| D14 | `db.Column(db.DateTime, default=datetime.utcnow)` (×16) | `utcnow` is deprecated since Python 3.12 and produces naive datetimes, so the browser reads them as local time | `db.DateTime(timezone=True)`, `default=lambda: datetime.now(timezone.utc)`; 0 `utcnow` left |
+| D15 | No indexes on foreign keys | PostgreSQL does not index FKs automatically, so `GET /api/cards?assignee=me`, the board load and the notification list do full scans (NFR-2) | `index=True` on `board_members.user_id`, `columns.board_id`, `cards.column_id`, `cards.assignee_id`, `comments.card_id`, `notifications.user_id` |
+| D16 | `class Column(db.Model)` | Collides with SQLAlchemy's `Column` name and invites import shadowing | `class BoardColumn(db.Model)` with `__tablename__ = "columns"`; relationship strings updated |
+| D17 | `config.py` reads `DATABASE_URL` as is; no frontend env template | Railway issues `postgres://…`, which SQLAlchemy 1.4+ rejects, so the **first deploy crashes**. The frontend `.env.example` is a graded deliverable | `postgres://` is normalized to `postgresql://`; backend env vars listed; `frontend/.env.example` with `NEXT_PUBLIC_API_BASE_URL` and `API_BASE_URL` |
+
+**Review of the result.**
+
+- **Verified by search.** No `utcnow` remains, there are 16 `timezone=True` columns, all 6 indexes are present, and the normalization comment and `.env.example` entry are in place.
+- **Incomplete rename.** `BoardColumn` was applied to the model and its relationship strings, but two prose references still say `Column.cards`: the `boards/service.py` comment and the REQ-19 traceability row. A blind rename usually misses code-like text inside comments and tables. Moved to DR4 as item 9.
+- **Not a mistake.** The frontend TypeScript type is still called `Column` (`types/index.ts`). It is a separate namespace from the Python model, so it was intentionally left alone.

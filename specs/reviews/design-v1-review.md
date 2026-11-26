@@ -78,6 +78,7 @@ Do not click "Generate Task List" until DR1–DR4 are done.
 
 - **DR2** was applied on 2026-11-26 ([CHANGELOG CL-08](../CHANGELOG.md#cl-08)). It was sent **before** DR1 by mistake. That is harmless, because the rounds edit independent sections. All 5 items were applied. One partial gap (the `GET /api/cards` 400 rule appears only in a schema comment) moved to DR4 as item 7.
 - **DR1** was applied on 2026-11-26 ([CHANGELOG CL-09](../CHANGELOG.md#cl-09)). All 8 blockers were fixed (D1–D8). One wrong path in the traceability table (REQ-19) moved to DR4 as item 8.
+- **DR3** was applied on 2026-11-26 ([CHANGELOG CL-10](../CHANGELOG.md#cl-10)). All 5 items were applied. The `BoardColumn` rename missed 2 `Column.cards` references, which moved to DR4 as item 9.
 
 ### DR1 — Blockers
 
@@ -181,6 +182,9 @@ Design refinement round 4 — traceability and consistency. Fix exactly these:
    Errors row (DR2 put this rule only in a CardQuerySchema comment).
 8. Traceability REQ-19: the path "backend/boards/service.py" is wrong; it must be
    "backend/app/blueprints/boards/service.py".
+9. Two references still say Column.cards after the BoardColumn rename (the boards/service.py
+   comment in the backend tree, and the REQ-19 traceability row). Change both to
+   BoardColumn.cards.
 Change nothing else. If you notice any other problem, report it at the end instead of
 fixing it. List every edit at the end.
 ```
