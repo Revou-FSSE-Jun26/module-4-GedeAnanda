@@ -33,14 +33,14 @@ RevoTask is a Trello-like task management web application consisting of two depl
 
 ### REQ-1: Health Check
 
-**Reference:** F — Infrastructure (§5.3)
+**Reference:** §5.3, NFR-4
 
 **User Story:** As a developer, I want a health endpoint, so that I can verify the API and database are reachable before running tests or accepting traffic.
 
 #### Acceptance Criteria
 
 1. WHEN a client sends `GET /api/health`, THE API SHALL return HTTP `200` with the body `{ "data": { "status": "ok" } }` after a trivial database query succeeds.
-2. IF the database is unreachable, THEN THE API SHALL return a non-`200` status code with a JSON error envelope.
+2. IF the database is unreachable, THEN THE API SHALL return HTTP `503` with `{ "error": "database unavailable" }`.
 3. THE API SHALL register the health endpoint in the application factory, outside all feature blueprints.
 
 ---
@@ -118,7 +118,7 @@ RevoTask is a Trello-like task management web application consisting of two depl
 
 #### Acceptance Criteria
 
-1. WHEN a Member or Admin sends `POST /api/boards/<id>/columns` with a column name, THE API SHALL create a Column with an `order` value equal to the last column's order plus `1024` and return HTTP `201`.
+1. WHEN a Member or Admin sends `POST /api/boards/<id>/columns` with a column name, THE API SHALL create a Column with an `order` value equal to `1024` if the board has no existing columns, or equal to the last column's order plus `1024` otherwise, and return HTTP `201`.
 2. WHEN a Member or Admin sends `PATCH /api/columns/<id>` with a new name or `is_done` value, THE API SHALL update the Column and return HTTP `200`.
 3. WHEN an Admin sends `DELETE /api/columns/<id>`, THE API SHALL hard-delete the Column and all its Cards, returning HTTP `200` with `{ "data": { "id": "<uuid>" } }`.
 4. IF a Member (non-Admin) attempts to delete a column, THEN THE API SHALL return HTTP `403`.
@@ -138,7 +138,7 @@ RevoTask is a Trello-like task management web application consisting of two depl
 
 #### Acceptance Criteria
 
-1. WHEN a Member or Admin sends `POST /api/columns/<col_id>/cards` with at minimum a `title`, THE API SHALL create a Card with the requesting user recorded as `created_by`, `priority` defaulting to `"medium"`, and `order` set to the last card's order plus `1024`, returning HTTP `201`.
+1. WHEN a Member or Admin sends `POST /api/columns/<col_id>/cards` with at minimum a `title`, THE API SHALL create a Card with the requesting user recorded as `created_by`, `priority` defaulting to `"medium"`, and `order` set to `1024` if the column has no existing cards, or to the last card's order plus `1024` otherwise, returning HTTP `201`.
 2. IF the submitted `title` is absent, fewer than 1 character, or greater than 200 characters, THEN THE API SHALL return HTTP `400`.
 3. IF the submitted `description` exceeds 5,000 characters, THEN THE API SHALL return HTTP `400`.
 4. IF the submitted `assignee_id` is not a BoardMember of the card's board, THEN THE API SHALL return HTTP `400`.
@@ -177,7 +177,7 @@ RevoTask is a Trello-like task management web application consisting of two depl
 4. WHEN a card is moved into a Column where `is_done = true`, THE API SHALL set `completed_at` to the current UTC timestamp.
 5. WHEN a card is moved out of a Column where `is_done = true` into a Column where `is_done = false`, THE API SHALL clear `completed_at` to `null`.
 6. THE API SHALL assign FLOAT `order` values using the same strategy as columns: append to end, insert between, insert at top, and rebalance when the gap drops below `1e-6`.
-7. WHEN a card move request succeeds, THE Web SHALL update the card's position in the UI before the API response is received (optimistic update).
+7. WHEN the user drops a card on a column, THE Web SHALL update the card's position in the UI before the API response is received (optimistic update).
 8. IF the card move API request fails, THEN THE Web SHALL restore the card to its original position and display an error toast.
 9. WHILE the user is on a desktop browser, THE Web SHALL support moving cards via drag-and-drop using the `useDragAndDrop` hook.
 10. THE Web SHALL provide a "Move to column" select in `CardDetailModal` that calls `PATCH /api/cards/<id>/position`, enabling card moves on mobile devices.
@@ -195,7 +195,7 @@ RevoTask is a Trello-like task management web application consisting of two depl
 
 1. WHEN a Member or Admin sends `POST /api/cards/<card_id>/comments` with a `content` field (1–2,000 characters), THE API SHALL create a Comment with the requesting user as `author_id` and return HTTP `201`.
 2. IF the submitted `content` is absent, fewer than 1 character, or greater than 2,000 characters, THEN THE API SHALL return HTTP `400`.
-3. WHEN a Member or Admin sends `GET /api/cards/<card_id>/comments`, THE API SHALL return HTTP `200` with the list of non-deleted-card comments in chronological order.
+3. WHEN a Member or Admin sends `GET /api/cards/<card_id>/comments`, THE API SHALL return HTTP `200` with the card's comments in chronological order; IF the card is soft-deleted, THEN THE API SHALL return HTTP `404`.
 4. WHEN the comment author sends `PATCH /api/comments/<id>` with updated `content`, THE API SHALL update the Comment and return HTTP `200`.
 5. WHEN the comment author sends `DELETE /api/comments/<id>`, THE API SHALL delete the Comment and return HTTP `200` with `{ "data": { "id": "<uuid>" } }`.
 6. IF a user who is not the comment author attempts to edit or delete a comment, THEN THE API SHALL return HTTP `403`.
@@ -220,7 +220,7 @@ RevoTask is a Trello-like task management web application consisting of two depl
 6. WHEN a logged-in user sends `PATCH /api/notifications/<id>/read` to mark a notification as read, THE API SHALL set `is_read = true` and return HTTP `200`.
 7. WHILE the user is logged in and the Web is open, THE Web SHALL poll `GET /api/notifications` every 30 seconds and update the `NotificationBell` unread count.
 8. WHEN a logged-in user sends `GET /api/notifications`, THE API SHALL read the `page` and `per_page` query parameters to determine which page of results to return.
-9. IF the `page` query parameter is less than `1`, or the `per_page` query parameter is not an integer in the range `1` to `100`, THEN THE API SHALL return HTTP `400`.
+9. IF the `page` query parameter is not an integer greater than or equal to `1`, or the `per_page` query parameter is not an integer in the range `1` to `100`, THEN THE API SHALL return HTTP `400`.
 10. IF a logged-in user sends `PATCH /api/notifications/<id>/read` for a notification that belongs to a different user, THEN THE API SHALL return HTTP `404`.
 
 ---
