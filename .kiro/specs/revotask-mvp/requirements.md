@@ -119,11 +119,12 @@ RevoTask is a Trello-like task management web application consisting of two depl
 #### Acceptance Criteria
 
 1. WHEN a Member or Admin sends `POST /api/boards/<id>/columns` with a column name, THE API SHALL create a Column with an `order` value equal to the last column's order plus `1024` and return HTTP `201`.
-2. WHEN a Member or Admin sends `PATCH /api/boards/<id>/columns/<col_id>` with a new name or a new `order`, THE API SHALL update the Column and return HTTP `200`.
-3. WHEN an Admin sends `DELETE /api/boards/<id>/columns/<col_id>`, THE API SHALL hard-delete the Column and all its Cards, returning HTTP `200` with `{ "data": { "id": "<uuid>" } }`.
+2. WHEN a Member or Admin sends `PATCH /api/columns/<id>` with a new name or `is_done` value, THE API SHALL update the Column and return HTTP `200`.
+3. WHEN an Admin sends `DELETE /api/columns/<id>`, THE API SHALL hard-delete the Column and all its Cards, returning HTTP `200` with `{ "data": { "id": "<uuid>" } }`.
 4. IF a Member (non-Admin) attempts to delete a column, THEN THE API SHALL return HTTP `403`.
 5. THE API SHALL assign FLOAT `order` values using the following strategy: append to end sets `order = last.order + 1024`; insert between two columns sets `order = (prev.order + next.order) / 2`; insert at top sets `order = first.order / 2`; WHEN the gap between neighbouring column order values drops below `1e-6`, THE API SHALL renumber all columns in that board to `1024, 2048, 3072, ...` in a single transaction.
 6. THE API SHALL expose a boolean `is_done` flag on each Column; WHEN no value is provided at creation, THE API SHALL default `is_done` to `false`.
+7. WHEN a Member or Admin sends `PATCH /api/boards/<id>/columns/reorder` with a `column_id` (UUID of a column on that board) and an `order` (float greater than 0), THE API SHALL update that column's order value and return HTTP `200`.
 
 ---
 
@@ -192,8 +193,8 @@ RevoTask is a Trello-like task management web application consisting of two depl
 1. WHEN a Member or Admin sends `POST /api/cards/<card_id>/comments` with a `content` field (1–2,000 characters), THE API SHALL create a Comment with the requesting user as `author_id` and return HTTP `201`.
 2. IF the submitted `content` is absent, fewer than 1 character, or greater than 2,000 characters, THEN THE API SHALL return HTTP `400`.
 3. WHEN a Member or Admin sends `GET /api/cards/<card_id>/comments`, THE API SHALL return HTTP `200` with the list of non-deleted-card comments in chronological order.
-4. WHEN the comment author sends `PATCH /api/cards/<card_id>/comments/<comment_id>` with updated `content`, THE API SHALL update the Comment and return HTTP `200`.
-5. WHEN the comment author sends `DELETE /api/cards/<card_id>/comments/<comment_id>`, THE API SHALL delete the Comment and return HTTP `200` with `{ "data": { "id": "<uuid>" } }`.
+4. WHEN the comment author sends `PATCH /api/comments/<id>` with updated `content`, THE API SHALL update the Comment and return HTTP `200`.
+5. WHEN the comment author sends `DELETE /api/comments/<id>`, THE API SHALL delete the Comment and return HTTP `200` with `{ "data": { "id": "<uuid>" } }`.
 6. IF a user who is not the comment author attempts to edit or delete a comment, THEN THE API SHALL return HTTP `403`.
 
 ---
@@ -211,7 +212,7 @@ RevoTask is a Trello-like task management web application consisting of two depl
 3. WHEN a user is added to a board, THE API SHALL create a Notification of type `board_invite` for the added user.
 4. WHEN a logged-in user sends `GET /api/notifications`, THE API SHALL return HTTP `200` with a paginated list of that user's notifications in reverse chronological order, including an `unread_count` field.
 5. THE API SHALL paginate notifications with a default `per_page` of `20` and a maximum of `100`.
-6. WHEN a logged-in user sends `PATCH /api/notifications/<id>` to mark a notification as read, THE API SHALL set `is_read = true` and return HTTP `200`.
+6. WHEN a logged-in user sends `PATCH /api/notifications/<id>/read` to mark a notification as read, THE API SHALL set `is_read = true` and return HTTP `200`.
 7. WHILE the user is logged in and the Web is open, THE Web SHALL poll `GET /api/notifications` every 30 seconds and update the `NotificationBell` unread count.
 
 ---
@@ -257,6 +258,7 @@ RevoTask is a Trello-like task management web application consisting of two depl
 2. WHEN a logged-in user sends `PATCH /api/users/me` with a new `name` or `email`, THE API SHALL update the User record and return HTTP `200`.
 3. IF the submitted `email` is already in use by another account, THEN THE API SHALL return HTTP `409`.
 4. THE Web profile page SHALL pre-fill the name and email fields from AuthContext.
+5. IF the submitted `PATCH /api/users/me` body includes a `password` field, THEN THE API SHALL return HTTP `400`.
 
 ---
 
