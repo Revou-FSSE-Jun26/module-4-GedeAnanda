@@ -58,6 +58,7 @@ RevoTask is a Trello-like task management web application consisting of two depl
 3. IF the submitted request body is missing `email` or `password`, THEN THE API SHALL return HTTP `400` with `{ "error": "<message>" }`.
 4. THE API SHALL never store or return a password in plain text.
 5. WHEN registration succeeds, THE Web SHALL display the `/login` page.
+6. IF the submitted password is shorter than 8 characters, THEN THE API SHALL return HTTP `400`.
 
 ---
 
@@ -74,6 +75,7 @@ RevoTask is a Trello-like task management web application consisting of two depl
 3. WHEN login succeeds, THE Web SHALL store the JWT in both the `revotask_token` cookie (`SameSite=Lax`, `Secure` in production, expiry equal to the JWT expiry) and in AuthContext.
 4. WHEN login succeeds, THE Web SHALL redirect the user to `/`.
 5. THE Web SHALL hydrate AuthContext from the `revotask_token` cookie on page load.
+6. IF `POST /api/auth/login` returns an error, THEN THE `/login` page SHALL display the error message from the `{ "error": "..." }` envelope and SHALL remain on `/login`.
 
 ---
 
@@ -179,7 +181,7 @@ RevoTask is a Trello-like task management web application consisting of two depl
 6. THE API SHALL assign FLOAT `order` values using the same strategy as columns: append to end, insert between, insert at top, and rebalance when the gap drops below `1e-6`.
 7. WHEN the user drops a card on a column, THE Web SHALL update the card's position in the UI before the API response is received (optimistic update).
 8. IF the card move API request fails, THEN THE Web SHALL restore the card to its original position and display an error toast.
-9. WHILE the user is on a desktop browser, THE Web SHALL support moving cards via drag-and-drop using the `useDragAndDrop` hook.
+9. WHILE the user is on a desktop browser, THE Web SHALL support moving cards via the native HTML5 Drag and Drop API, implemented in the `useDragAndDrop` hook.
 10. THE Web SHALL provide a "Move to column" select in `CardDetailModal` that calls `PATCH /api/cards/<id>/position`, enabling card moves on mobile devices.
 11. THE API SHALL validate the `PATCH /api/cards/<id>/position` request body using `CardPositionSchema`; IF the submitted `column_id` is not a valid UUID, THEN THE API SHALL return HTTP `400`.
 
@@ -237,6 +239,7 @@ RevoTask is a Trello-like task management web application consisting of two depl
 2. WHEN a logged-in user sends `GET /api/cards?assignee=me&board_id=<uuid>`, THE API SHALL return HTTP `200` with non-deleted cards assigned to the requesting user on the specified board only.
 3. THE API SHALL never return soft-deleted cards from `GET /api/cards`.
 4. THE Web SHALL display the My Tasks page as a list of non-deleted cards assigned to the current user, grouped by board name.
+5. THE `/my-tasks` page SHALL display each card's priority using the `BaseBadge` component.
 
 ---
 
@@ -267,6 +270,9 @@ RevoTask is a Trello-like task management web application consisting of two depl
 3. IF the submitted `email` is already in use by another account, THEN THE API SHALL return HTTP `409`.
 4. THE Web profile page SHALL pre-fill the name and email fields from AuthContext.
 5. IF the submitted `PATCH /api/users/me` body includes a `password` field, THEN THE API SHALL return HTTP `400`.
+6. THE `/profile` page SHALL render the name and email fields as controlled inputs whose values are managed by React state.
+7. WHEN the user submits the profile form, THE `/profile` page SHALL send `PATCH /api/users/me` with the updated name and/or email.
+8. WHEN `PATCH /api/users/me` succeeds, THE `/profile` page SHALL display a success toast using `lib/toast`.
 
 ---
 
@@ -294,14 +300,14 @@ RevoTask is a Trello-like task management web application consisting of two depl
 
 #### Acceptance Criteria
 
-1. WHEN an Admin sends `GET /api/boards/<id>/members`, THE API SHALL return HTTP `200` with the list of BoardMembers for that board.
+1. WHEN any Member or Admin sends `GET /api/boards/<id>/members`, THE API SHALL return HTTP `200` with the list of BoardMembers for that board.
 2. WHEN an Admin sends `POST /api/boards/<id>/members` with an `email` and a `role`, THE API SHALL look up the user by email, add them as a BoardMember with the specified role, and return HTTP `201`.
 3. IF the submitted `email` does not correspond to a registered user, THEN THE API SHALL return HTTP `404`.
 4. IF the submitted `role` is not `"admin"` or `"member"`, THEN THE API SHALL return HTTP `400`.
 5. WHEN an Admin sends `PATCH /api/boards/<id>/members/<user_id>` with a new `role`, THE API SHALL update the BoardMember's role and return HTTP `200`.
 6. WHEN an Admin sends `DELETE /api/boards/<id>/members/<user_id>`, THE API SHALL remove the BoardMember and return HTTP `200` with `{ "data": { "id": "<uuid>" } }`.
 7. IF an Admin attempts to remove the last remaining admin from a board, THEN THE API SHALL return HTTP `400` with `{ "error": "<message>" }`.
-8. IF a Member (non-Admin) attempts any member management action, THEN THE API SHALL return HTTP `403`.
+8. IF a Member (non-Admin) attempts `POST /api/boards/<id>/members`, `PATCH /api/boards/<id>/members/<user_id>`, or `DELETE /api/boards/<id>/members/<user_id>`, THEN THE API SHALL return HTTP `403`.
 9. IF the `email` submitted to `POST /api/boards/<id>/members` already belongs to an existing BoardMember of that board, THEN THE API SHALL return HTTP `409`.
 10. IF an Admin sends `PATCH /api/boards/<id>/members/<user_id>` with a role that would leave the board with no remaining admin, THEN THE API SHALL return HTTP `400`.
 
@@ -437,7 +443,7 @@ RevoTask is a Trello-like task management web application consisting of two depl
 1. THE `/register` page SHALL render all form inputs as controlled inputs whose values are managed by React state.
 2. WHEN the user attempts to submit the registration form, THE `/register` page SHALL validate that the name field is not empty before sending any request to the API.
 3. WHEN the user attempts to submit the registration form, THE `/register` page SHALL validate that the email field matches a valid email format before sending any request to the API.
-4. WHEN the user attempts to submit the registration form, THE `/register` page SHALL validate that the password field meets the minimum required length before sending any request to the API.
+4. WHEN the user attempts to submit the registration form, THE `/register` page SHALL validate that the password field is at least 8 characters long before sending any request to the API.
 5. WHEN client-side validation fails on a field, THE `/register` page SHALL display an inline error message for each failing field without submitting the form.
 6. WHEN all client-side validation passes, THE `/register` page SHALL submit the form by sending `POST /api/auth/register` with the name, email, and password.
 7. IF the API returns an error response, THEN THE `/register` page SHALL display the error message from the `{ "error": "..." }` envelope to the user.
@@ -473,7 +479,7 @@ RevoTask is a Trello-like task management web application consisting of two depl
 3. WHEN the `/boards/[id]` page renders, THE `/boards/[id]` page SHALL display each column's non-deleted cards sorted in ascending `order`.
 4. THE `/boards/[id]` page SHALL provide an add-column action that sends `POST /api/boards/<id>/columns` with a column name.
 5. THE `/boards/[id]` page SHALL provide a per-column add-card action that sends `POST /api/columns/<id>/cards` with at minimum a card title.
-6. WHEN a card search query is active, THE `/boards/[id]` page SHALL render only the cards whose titles match the query, hiding non-matching cards in place without removing their columns.
+6. WHEN a card search query is active, THE `/boards/[id]` page SHALL fetch matching cards from `GET /api/cards?board_id=<id>&q=<text>` (REQ-13) and render only the returned cards, hiding non-matching cards in place without removing their columns.
 7. WHEN a user clicks a card, THE `/boards/[id]` page SHALL open `CardDetailModal` for that card.
 
 ---
@@ -506,9 +512,11 @@ RevoTask is a Trello-like task management web application consisting of two depl
 
 #### Acceptance Criteria
 
-1. THE `Header` component SHALL render navigation links to the application's main pages.
+1. THE `Header` component SHALL render navigation links to Dashboard (`/`), My Tasks (`/my-tasks`), and Profile (`/profile`).
 2. THE `Header` component SHALL render the `NotificationBell` component, which displays the current unread notification count sourced from the `useNotifications` hook.
 3. THE `Header` component SHALL render a logout control that, when activated, executes the logout action described in REQ-4.3.
+4. WHEN the `NotificationBell` is opened, THE `NotificationBell` component SHALL display a list of the latest notifications fetched from `GET /api/notifications`.
+5. WHEN the user clicks an unread notification in the `NotificationBell` list, THE `NotificationBell` component SHALL send `PATCH /api/notifications/<id>/read` and SHALL decrease the displayed unread count by one.
 
 ---
 
@@ -542,6 +550,7 @@ RevoTask is a Trello-like task management web application consisting of two depl
 2. WHEN `lib/apiClient` is used in a Server Component, THE `lib/apiClient` module SHALL read the API base URL from the `API_BASE_URL` environment variable.
 3. WHEN a JWT token is available, THE `lib/apiClient` module SHALL attach an `Authorization: Bearer <token>` header to every outgoing request.
 4. WHEN an API response has a non-2xx HTTP status code, THE `lib/apiClient` module SHALL throw an `ApiError` (defined in `lib/errors`) populated with the `statusCode` from the HTTP response and the `message` from the `{ "error": "..." }` envelope.
+5. THE `lib/toast` module SHALL expose `success`, `error`, and `loading` helpers that wrap `toast.success()`, `toast.error()`, and `toast.loading()` from react-hot-toast respectively.
 
 ---
 
@@ -557,3 +566,4 @@ RevoTask is a Trello-like task management web application consisting of two depl
 2. THE `BaseBadge` component SHALL support color variants corresponding to the card priority values `low`, `medium`, and `high`.
 3. THE `/my-tasks` page SHALL use `BaseButton` for every button element and SHALL NOT introduce one-off button elements.
 4. THE `/profile` page SHALL use `BaseButton` for every button element and SHALL NOT introduce one-off button elements.
+5. THE `BaseModal` component SHALL be used as the wrapper for every form in the application, including the create-board form, the add-column form, the add-card form, and `CardDetailModal`.
