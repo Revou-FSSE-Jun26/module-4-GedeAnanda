@@ -19,6 +19,7 @@ Raw AI output is committed **before** each refinement, so every entry can be ver
 | [CL-06](#cl-06) | `requirements.md` | R5 | Kiro (Spec) | Removed 5 duplicated criteria; NFR requirements now reference the feature criteria |
 | [CL-07](#cl-07) | `requirements.md` | R6 | Kiro (Spec) | Closed 9 gaps found while reviewing R2; requirements accepted (32 REQs, 187 criteria) |
 | [CL-08](#cl-08) | `design.md` | DR2 | Kiro (Spec) | Defined response (dump) schemas; position/reorder responses carry rebalance info; tightened query and order validation |
+| [CL-09](#cl-09) | `design.md` | DR1 | Kiro (Spec) | Fixed 8 blockers: error handlers, JWT error envelope, notification FK cascade, middleware location, Header on auth pages, repo roots, soft-delete eager loading |
 
 ---
 
@@ -346,3 +347,40 @@ The FLOAT rebalance also had a client-side flaw: after a server rebalance, the b
 - **Complete.** All 5 items were applied. The diff (102 additions, 22 deletions) only replaces success rows, adds the schema section, and rewrites the three schema lines named in the prompt.
 - **Password safety.** `UserOut` has no `password_hash`, and it is the only schema used for user data, so Property 6 is now enforced by construction rather than by remembering to delete a key.
 - **Partial gap.** The "neither `assignee` nor `board_id` → `400`" rule appears only as a comment in `CardQuerySchema`. The `GET /api/cards` endpoint row still lists only `401`/`404`. Added to DR4 as item 7.
+
+---
+
+## CL-09
+
+**Design DR1: fix the 8 blockers**
+
+| Field | Value |
+| ----- | ----- |
+| Date | 2026-11-26 |
+| Artifact | `.kiro/specs/revotask-mvp/design.md` |
+| Tool | Kiro, Spec mode |
+| Trigger | Design review findings D1–D8 |
+| Prompt | DR1 in [design-v1-review.md](reviews/design-v1-review.md#dr1--blockers) |
+| Commits | before `1048724` → after `2c28f1a` |
+
+**Trigger.** Design v1 described a system that would have failed at runtime. Each of these defects is invisible when you read the document, and only shows up when the code runs or the E2E suite hits it.
+
+**Before → After.**
+
+| # | Before | Consequence if built as written | After |
+| - | ------ | ------------------------------- | ----- |
+| D1 | `ValidationError` handled through `@app.errorhandler(422)` | Every validation error returns **500** (plain Marshmallow never raises HTTP 422) | `@app.errorhandler(ValidationError)` → `400 { "error": … }` |
+| D2 | Only a catch-all `Exception` handler, plus 404/405 | Malformed JSON (400) and 415 become **500** | `@app.errorhandler(HTTPException)` → `e.code` + `{ "error": e.description }` |
+| D3 | "JWT error handlers → 401", no detail | Library default `{ "msg": … }` breaks the envelope; a malformed token returns **422** | `unauthorized_loader`, `invalid_token_loader`, `expired_token_loader` → `401 { "error": … }` |
+| D4 | `Notification.card_id` / `board_id` FKs with no `ondelete` | `DELETE /api/boards/<id>` → IntegrityError → **500** once a `board_invite` exists | `ondelete="SET NULL"` on both |
+| D5 | `app/middleware.ts` | Next.js ignores it there, so **no route protection** and Playwright auth scenarios 3 and 4 fail | `frontend/middleware.ts` at the project root (`proxy.ts` on Next.js 16+) |
+| D6 | Root layout renders `Header` on every page | On `/login`, the bell polls without a token, gets `401`, redirects, and **loops** | Root layout holds only providers and `Toaster`; `Header` lives in `app/(app)/layout.tsx` (`/`, `/boards/[id]`, `/my-tasks`, `/profile`) |
+| D7 | Flask and Next.js both rooted at `app/` | The two projects cannot coexist in one repo | `backend/app/…` and `frontend/app/…`; every traceability path updated |
+| D8 | `joinedload` through the plain `Column.cards` relationship | **Soft-deleted cards appear** on the board (violates REQ-5.3) | `selectinload(Board.columns).selectinload(Column.cards.and_(Card.deleted_at.is_(None)))` |
+
+**Review of the result.**
+
+- **Complete.** Each fix was confirmed by searching the updated document: the ValidationError and HTTPException handlers, the three JWT loaders, `ondelete="SET NULL"` on both FKs, `frontend/middleware.ts` at the root, the `(app)` route group, 26 `frontend/` and 5 `backend/` paths, and the filtered `selectinload`.
+- **Scope respected.** Most of the diff (115 additions, 106 deletions) is path rewrites for D7. Every deletion outside the targeted sections was checked: they are only folder-tree lines moved under the new roots.
+- **One mistake introduced.** The REQ-19 traceability row now points to `backend/boards/service.py`, which skips `app/blueprints/`. Moved to DR4 (item 8).
+- **Why these were not caught by Kiro.** Kiro's own end-of-round summaries never flagged any of D1–D8. Each needs knowledge of library behavior (Marshmallow, Flask-JWT-Extended, Next.js file conventions, PostgreSQL FK semantics) that a document-level consistency check does not catch.
