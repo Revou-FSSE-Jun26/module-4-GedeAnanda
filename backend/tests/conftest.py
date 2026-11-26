@@ -10,7 +10,7 @@ from flask_jwt_extended import create_access_token
 from app import create_app
 from app.config import TestConfig
 from app.extensions import db
-from app.models import User
+from app.models import Board, BoardMember, User
 from tests.probes import register_probe_routes
 
 TEST_PASSWORD = "password123"
@@ -65,6 +65,23 @@ def test_user_2(app):
 @pytest.fixture
 def test_user_3(app):
     return make_user("Carol Outsider", "carol@example.com")
+
+
+def make_board(owner: User, name: str = "Sprint Board", members=()) -> Board:
+    """Create a board owned by ``owner`` (admin), plus ``(user, role)`` pairs as members."""
+    board = Board(name=name, owner_id=owner.id)
+    db.session.add(board)
+    db.session.add(BoardMember(board=board, user_id=owner.id, role="admin"))
+    for user, role in members:
+        db.session.add(BoardMember(board=board, user_id=user.id, role=role))
+    db.session.commit()
+    return board
+
+
+@pytest.fixture
+def board(test_user, test_user_2):
+    """Alice is the admin, Bob is a member. Carol (``test_user_3``) is not on the board."""
+    return make_board(test_user, members=[(test_user_2, "member")])
 
 
 @pytest.fixture

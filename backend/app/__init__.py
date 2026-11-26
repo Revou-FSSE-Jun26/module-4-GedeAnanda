@@ -33,8 +33,10 @@ def create_app(config: Config | None = None) -> Flask:
 
 def register_blueprints(app: Flask) -> None:
     from app.blueprints.auth.routes import auth_bp
+    from app.blueprints.boards.routes import boards_bp
 
-    app.register_blueprint(auth_bp)
+    for blueprint in (auth_bp, boards_bp):
+        app.register_blueprint(blueprint)
 
 
 def register_health(app: Flask) -> None:

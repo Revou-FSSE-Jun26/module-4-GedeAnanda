@@ -1,22 +1,13 @@
 from flask_jwt_extended import create_access_token
-from sqlalchemy import select
 from sqlalchemy.exc import IntegrityError
 
+from app.blueprints.users.service import find_user_by_email, normalize_email
 from app.exceptions import AppError
 from app.extensions import db
 from app.models import User
 
 EMAIL_TAKEN = "Email is already registered"
 INVALID_CREDENTIALS = "Invalid email or password"
-
-
-def normalize_email(email: str) -> str:
-    """Emails are stored lowercase so ``A@x.com`` and ``a@x.com`` are one account."""
-    return email.strip().lower()
-
-
-def find_user_by_email(email: str) -> User | None:
-    return db.session.scalar(select(User).where(User.email == normalize_email(email)))
 
 
 def register_user(data: dict) -> User:

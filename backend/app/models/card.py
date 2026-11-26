@@ -25,6 +25,14 @@ class Card(BaseModel):
     assignee = db.relationship("User", foreign_keys=[assignee_id], back_populates="assigned_cards")
     comments = db.relationship("Comment", back_populates="card", cascade="all, delete-orphan")
 
+    @property
+    def board_id(self):
+        return self.column.board_id
+
+    @property
+    def board_name(self) -> str:
+        return self.column.board.name
+
 
 def active_cards():
     """Starting point for every card query: excludes soft-deleted cards (guideline DB-04)."""
