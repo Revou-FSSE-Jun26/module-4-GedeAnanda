@@ -1,0 +1,48 @@
+@import "tailwindcss";
+
+/*
+ * RevoTask design tokens. A whiteboard and its markers: a cool, pale board,
+ * white cards, ink-navy writing, one blue for actions, and three marker
+ * colours that mean priority and nothing else.
+ */
+@theme inline {
+  --color-board: #eef1f6;
+  --color-lane: #e1e6ef;
+  --color-card: #ffffff;
+  --color-ink: #1b2440;
+  --color-ink-soft: #55607a;
+  --color-line: #cbd3e1;
+  --color-action: #2f5bea;
+  --color-action-deep: #2147c4;
+  --color-danger: #c8322b;
+  --color-danger-deep: #a32620;
+  --color-low: #2e7d5b;
+  --color-low-wash: #e2f1ea;
+  --color-medium: #96600f;
+  --color-medium-wash: #fbefd3;
+  --color-high: #b3261e;
+  --color-high-wash: #fbe4e2;
+
+  --font-sans: var(--font-body);
+  --font-display: var(--font-heading);
+}
+
+body {
+  background: var(--color-board);
+  color: var(--color-ink);
+}
+
+/* One focus style for everything that can take the keyboard. */
+:focus-visible {
+  outline: 3px solid var(--color-action);
+  outline-offset: 2px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    transition-duration: 0.01ms !important;
+  }
+}
