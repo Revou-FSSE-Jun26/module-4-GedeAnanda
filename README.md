@@ -151,6 +151,10 @@ Without the two variables it runs against `http://localhost:3000` and `http://lo
 
 Import [`docs/postman/RevoTask.postman_collection.json`](docs/postman/RevoTask.postman_collection.json) into Postman and run the collection. It has one folder per blueprint and covers all 30 endpoints. It points at the production API; change the `baseUrl` variable to test a local one.
 
+Run against production, 35 of 35 tests passed:
+
+![Postman run results](docs/screenshots/07-postman.png)
+
 ## Results on production
 
 Measured on 27 November 2026.
