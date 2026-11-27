@@ -12,7 +12,7 @@ Both run on Vercel in the Singapore region. The database is PostgreSQL on Neon, 
 
 ## Screenshots
 
-| Kanban board | Card details and comments |
+| Kanban board with labels and checklist progress | Card details: labels and checklist |
 | --- | --- |
 | ![Kanban board](docs/screenshots/03-kanban-board.png) | ![Card details](docs/screenshots/04-card-details.png) |
 
@@ -20,13 +20,17 @@ Both run on Vercel in the Singapore region. The database is PostgreSQL on Neon, 
 | --- | --- |
 | ![Board in the dark theme](docs/screenshots/08-dark-board.png) | ![A card in mid-drag, with the target column and landing line marked](docs/screenshots/09-dragging.png) |
 
-| Dashboard | My tasks |
+| Filters | Dashboard |
 | --- | --- |
-| ![Dashboard](docs/screenshots/02-dashboard.png) | ![My tasks](docs/screenshots/05-my-tasks.png) |
+| ![Board filtered by a label](docs/screenshots/11-filters.png) | ![Dashboard](docs/screenshots/02-dashboard.png) |
 
-| Login | Board on a 375 px phone |
+| My tasks | Login |
 | --- | --- |
-| ![Login](docs/screenshots/01-login.png) | <img src="docs/screenshots/06-mobile-board.png" alt="Board on a phone" width="200"> <img src="docs/screenshots/10-dark-mobile.png" alt="Board on a phone, dark theme" width="200"> |
+| ![My tasks](docs/screenshots/05-my-tasks.png) | ![Login](docs/screenshots/01-login.png) |
+
+| Board on a 375 px phone, light and dark |
+| --- |
+| <img src="docs/screenshots/06-mobile-board.png" alt="Board on a phone" width="200"> <img src="docs/screenshots/10-dark-mobile.png" alt="Board on a phone, dark theme" width="200"> |
 
 ## Features
 
@@ -34,6 +38,9 @@ Both run on Vercel in the Singapore region. The database is PostgreSQL on Neon, 
 - **Boards.** Create, list, rename and delete boards. Each board has members with a role: admin or member.
 - **Columns.** Add, rename, delete and reorder columns. A column can be marked as the "done" column.
 - **Cards.** Create and edit cards (title, description, assignee, due date, priority). Drag a card within a column or to another column. The screen updates at once and rolls back if the API rejects the move. Deleting a card is a soft delete.
+- **Labels.** Coloured labels that belong to a board. A card can have several; they show as chips on the card.
+- **Checklist.** Break a card into steps and tick them off. The card shows the progress, for example 2/4.
+- **Filters.** Narrow the board by assignee, priority, label and due date. Works together with the card search.
 - **Comments.** Comment on a card. Edit and delete your own comments only.
 - **Notifications.** A bell in the header shows unread notifications, refreshed every 30 seconds. You are notified when you are assigned a card, when someone comments on a card you created or are assigned to, and when you are added to a board.
 - **My Tasks.** Every card assigned to you, grouped by board.
@@ -68,22 +75,23 @@ Access rule: a user who is not a member of a board gets `404` for it, so the boa
 └── docs/          screenshots and the Postman collection
 ```
 
-The API has 8 blueprints: `auth`, `users`, `boards`, `columns`, `cards`, `comments`, `notifications`, `analytics`. Each has its own `routes.py`, `service.py` and `schema.py`. Together they expose 30 endpoints.
+The API has 10 blueprints. The eight the assignment asks for: `auth`, `users`, `boards`, `columns`, `cards`, `comments`, `notifications`, `analytics`. Two added later: `labels`, `checklists`. Each has its own `routes.py`, `service.py` and `schema.py`. Together they expose 37 endpoints.
 
 ## AI workflow summary
 
 The project followed one chain: brief → requirements → design → tasks → code → tests. Every AI output was reviewed before it was committed.
 
 1. **Brief.** I wrote [`specs/project-brief.md`](specs/project-brief.md) as the input for the spec phase.
-2. **Specs with Kiro.** Kiro generated `requirements.md`, `design.md` and `tasks.md` from the brief. I reviewed each first version and recorded the findings in [`specs/reviews/`](specs/reviews/). Every change to the specs is logged in [`specs/CHANGELOG.md`](specs/CHANGELOG.md) with the text before and after (16 entries, CL-01 to CL-16).
+2. **Specs with Kiro.** Kiro generated `requirements.md`, `design.md` and `tasks.md` from the brief. I reviewed each first version and recorded the findings in [`specs/reviews/`](specs/reviews/). Every change to the specs is logged in [`specs/CHANGELOG.md`](specs/CHANGELOG.md) with the text before and after (17 entries, CL-01 to CL-17).
 3. **Steering guidelines.** [`guidelines/`](guidelines/) holds the rules for frontend, backend and database code. Each rule has a rationale and an example. [`guidelines/comparison/`](guidelines/comparison/) shows the same feature generated before and after the guidelines existed.
 4. **Code with Claude Code.** Kiro's free credits ran out after the spec phase, so the implementation was done with Claude Code, working from the same specs and guidelines, one task group at a time: auth, boards, columns, cards, then comments, notifications, users and analytics, then the frontend.
 5. **Review against the guidelines.** Generated code was checked against the guidelines and by tests. Six violations were found and fixed; each is recorded in [`guidelines/violation-report.md`](guidelines/violation-report.md) with the rule, the bad code and the fix. Examples: an N+1 query when loading a board (found only after the query-count test was made stricter), and a page that scrolled sideways on a phone.
 
-Three things did not go to plan, and all are logged:
+Four things were not in the first plan, and all are logged:
 
 - **AI tool change.** The plan was Kiro for the whole project. It became Kiro for specs and Claude Code for code.
 - **Hosting change (CL-15).** The specs named Railway for the API. Railway and Render both rejected my payment card, so the API moved to Vercel's Python runtime with a Neon database. The mentor approved the change.
+- **Scope added after the MVP (CL-16, CL-17).** With the assignment's features live, I added a visual upgrade and then labels, a checklist and board filters. Each was written as a requirement first, then coded and tested the same way as the rest.
 - **A feature that was built and removed (CL-16).** After the MVP was live I added a visual upgrade as a new requirement (REQ-33). Its loading skeletons looked right in the browser but made the Kanban end-to-end test fail 4 times in 12 against a production build, so they were taken out again and the requirement was changed.
 
 ## Run locally
@@ -130,7 +138,7 @@ source .venv/bin/activate
 pytest
 ```
 
-296 tests. They use the database in `TEST_DATABASE_URL` and wipe its tables on every run.
+354 tests. They use the database in `TEST_DATABASE_URL` and wipe its tables on every run.
 
 ### Web unit tests (Jest)
 
@@ -139,7 +147,7 @@ cd frontend
 npm test
 ```
 
-87 tests. `npm run lint` and `npm run typecheck` check style and types.
+120 tests. `npm run lint` and `npm run typecheck` check style and types.
 
 ### End-to-end tests (Playwright)
 
@@ -153,13 +161,13 @@ E2E_BASE_URL=https://revotask-web.vercel.app E2E_API_URL=https://revotask-api.ve
 
 Without the two variables it runs against `http://localhost:3000` and `http://localhost:5000`.
 
-10 tests: 4 authentication scenarios, the 8-step Kanban journey (log in, create a board, add two columns, create a card, drag it to Done, reload, check it is still there), and 5 checks at 375 px. No test uses a fixed wait. Every run registers its own throwaway accounts. The report of the last run against production is in [`frontend/playwright-report/`](frontend/playwright-report/).
+11 tests: 4 authentication scenarios, the 8-step Kanban journey (log in, create a board, add two columns, create a card, drag it to Done, reload, check it is still there), one scenario for labels, checklist and filters, and 5 checks at 375 px. No test uses a fixed wait. Every run registers its own throwaway accounts. The report of the last run against production is in [`frontend/playwright-report/`](frontend/playwright-report/).
 
 ### API collection (Postman)
 
-Import [`docs/postman/RevoTask.postman_collection.json`](docs/postman/RevoTask.postman_collection.json) into Postman and run the collection. It has one folder per blueprint and covers all 30 endpoints. It points at the production API; change the `baseUrl` variable to test a local one.
+Import [`docs/postman/RevoTask.postman_collection.json`](docs/postman/RevoTask.postman_collection.json) into Postman and run the collection. It has one folder per blueprint and covers all 37 endpoints. It points at the production API; change the `baseUrl` variable to test a local one.
 
-Run against production, 35 of 35 tests passed:
+Run against production, every test passed:
 
 ![Postman run results](docs/screenshots/07-postman.png)
 
@@ -169,11 +177,11 @@ Measured on 27 November 2026.
 
 | Check | Result |
 | --- | --- |
-| Playwright against the live URLs | 10 of 10 passed |
-| Postman collection against the live API | 34 requests, 35 assertions, 0 failed |
-| `GET /api/boards/<id>` with 200 cards, p95 (target: 500 ms) | 169 ms on a reused connection, 344 ms with a new connection per request |
+| Playwright against the live URLs | 11 of 11 passed; 44 of 44 when the suite is repeated 4 times |
+| Postman collection against the live API | 43 requests, 46 assertions, 0 failed |
+| `GET /api/boards/<id>` with 200 cards, p95 (target: 500 ms) | 257 ms on a reused connection, 348 ms with a new connection per request |
 
-The p95 figures come from 100 requests each, sent from Indonesia to a warm function; the response was 81 KB. The first request after the function has been idle is slower and is not part of these figures.
+The p95 figures come from 100 requests each, sent from Indonesia to a warm function. Every one of the 200 cards had a label and two checklist items; the response was 138 KB. Before labels and checklists existed the same measurement gave 169 ms. The first request after the function has been idle is slower and is not part of these figures.
 
 ## Environment variables
 

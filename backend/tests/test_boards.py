@@ -6,7 +6,7 @@ import pytest
 from app.extensions import db
 from app.models import Board, BoardColumn, BoardMember, Card, Comment, Notification, User
 from tests.conftest import make_board
-from tests.helpers import add_card, add_column, assert_error
+from tests.helpers import add_card, add_column, add_item, add_label, assert_error, tag
 
 
 # --- POST /api/boards ----------------------------------------------------------
@@ -117,16 +117,24 @@ def test_get_board_uses_a_fixed_number_of_queries(
     for index in range(2, 6):
         extra = add_column(board, f"Column {index}", index * 1024)
         for position in range(1, 5):
-            add_card(
+            card = add_card(
                 extra, users[0], f"Card {position}", position * 1024,
                 assignee=users[position % 2],
             )
+            # A different label and its own checklist per card, so a missing eager
+            # load costs one query per card and the test notices.
+            tag(card, add_label(board, f"Label {index}.{position}"))
+            add_item(card, "Step", 1024)
     db.session.expunge_all()
 
     res, large = count_queries(lambda: client.get(url, headers=headers))
 
     assert sum(len(c["cards"]) for c in res.get_json()["data"]["columns"]) == 17
-    assert small == 5  # membership, board, columns, cards, assignees
+    cards = [card for c in res.get_json()["data"]["columns"] for card in c["cards"]]
+    assert sum(len(card["labels"]) + len(card["checklist"]) for card in cards) == 32
+    assert len(res.get_json()["data"]["labels"]) == 16
+    # membership, board, columns, cards, assignees, card labels, checklists, board labels
+    assert small == 8
     assert large == small
 
 

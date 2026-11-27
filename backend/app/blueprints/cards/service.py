@@ -4,6 +4,7 @@ from sqlalchemy import func, select
 from sqlalchemy.orm import contains_eager, joinedload, selectinload
 
 from app.blueprints.columns.service import COLUMN_NOT_FOUND, get_column
+from app.blueprints.labels import service as labels
 from app.blueprints.notifications import service as notifications
 from app.exceptions import AppError
 from app.extensions import db
@@ -25,6 +26,8 @@ def list_cards(user_id: uuid.UUID, params: dict) -> list[Card]:
         .options(
             contains_eager(Card.column).contains_eager(BoardColumn.board),
             selectinload(Card.assignee),
+            selectinload(Card.labels),
+            selectinload(Card.checklist),
         )
         # Only boards the user still belongs to, even for cards assigned to them.
         .where(
@@ -65,6 +68,7 @@ def create_card(user_id: uuid.UUID, column_id: uuid.UUID, data: dict) -> Card:
         completed_at=utc_now() if column.is_done else None,
     )
     db.session.add(card)
+    labels.set_card_labels(card, data["label_ids"])
     db.session.flush()  # the notification needs card.id
     notify_assignee(card, user_id)
     db.session.commit()
@@ -77,6 +81,10 @@ def update_card(user_id: uuid.UUID, card_id: uuid.UUID, data: dict) -> Card:
     if assignee_changed:
         ensure_assignee_is_member(card.column.board_id, data["assignee_id"])
 
+    # Labels live in their own table and are owned by the labels blueprint (guideline BE-09).
+    label_ids = data.pop("label_ids", None)
+    if label_ids is not None:
+        labels.set_card_labels(card, label_ids)
     for field, value in data.items():
         setattr(card, field, value)
     if assignee_changed:

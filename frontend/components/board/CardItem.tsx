@@ -4,6 +4,7 @@ import { Avatar } from "@/components/shared/Avatar";
 import { BaseBadge } from "@/components/shared/BaseBadge";
 import { BaseButton } from "@/components/shared/BaseButton";
 import { Icon } from "@/components/shared/Icon";
+import { LabelChip } from "@/components/shared/LabelChip";
 import type { DragAndDrop } from "@/hooks/useDragAndDrop";
 import { formatDate, isOverdue } from "@/lib/format";
 import type { Card } from "@/types";
@@ -28,6 +29,8 @@ export function CardItem({ card, dnd, onOpen }: CardItemProps) {
   const overdue = card.due_date && !card.completed_at && isOverdue(card.due_date);
   const dragging = dnd.draggingId === card.id;
   // Another card is in the air and would land just above this one.
+  const stepsDone = card.checklist.filter((item) => item.is_done).length;
+  const allStepsDone = card.checklist.length > 0 && stepsDone === card.checklist.length;
   const landingAbove = dnd.draggingId !== null && !dragging && dnd.dropTarget?.beforeCardId === card.id;
 
   return (
@@ -50,6 +53,15 @@ export function CardItem({ card, dnd, onOpen }: CardItemProps) {
         EDGE[card.priority]
       }
     >
+      {card.labels.length > 0 && (
+        <ul aria-label="Labels" className="flex flex-wrap gap-1 px-2 pt-2">
+          {card.labels.map((label) => (
+            <li key={label.id} className="flex max-w-full">
+              <LabelChip label={label} />
+            </li>
+          ))}
+        </ul>
+      )}
       <BaseButton
         variant="secondary"
         onClick={() => onOpen(card.id)}
@@ -67,6 +79,20 @@ export function CardItem({ card, dnd, onOpen }: CardItemProps) {
                 {overdue ? "Overdue, was due " : "Due "}
                 {formatDate(card.due_date)}
               </span>
+            </span>
+          )}
+          {card.checklist.length > 0 && (
+            <span
+              data-complete={allStepsDone ? "true" : undefined}
+              className={
+                "inline-flex items-center gap-1 rounded-md px-1.5 py-0.5 tabular-nums " +
+                (allStepsDone ? "bg-low-wash font-semibold text-low" : "")
+              }
+            >
+              <Icon name="check" className="h-3.5 w-3.5" />
+              <span className="sr-only">Checklist: </span>
+              {stepsDone}/{card.checklist.length}
+              <span className="sr-only"> done</span>
             </span>
           )}
         </div>

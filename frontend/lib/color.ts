@@ -4,8 +4,20 @@
  * for every viewer without the API storing anything (REQ-33.4, REQ-33.5).
  */
 
-export const MARKERS = ["cobalt", "teal", "plum", "poppy", "amber", "moss"] as const;
-export type Marker = (typeof MARKERS)[number];
+import type { LabelColor } from "@/types";
+
+export const MARKERS: readonly LabelColor[] = ["cobalt", "teal", "plum", "poppy", "amber", "moss"];
+export type Marker = LabelColor;
+
+/** The colours' names as a person reads them, for the "new label" form. */
+export const MARKER_NAMES: Record<Marker, string> = {
+  cobalt: "Blue",
+  teal: "Teal",
+  plum: "Purple",
+  poppy: "Red",
+  amber: "Amber",
+  moss: "Green",
+};
 
 /** Full class names, written out so Tailwind can see them. */
 export const MARKER_BG: Record<Marker, string> = {

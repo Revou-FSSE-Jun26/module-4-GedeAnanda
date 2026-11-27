@@ -8,7 +8,7 @@ import type { Card, ColumnWithCards } from "@/types";
 
 interface ColumnListProps {
   columns: ColumnWithCards[];
-  /** IDs of the cards that match the active search; `null` when no search is active. */
+  /** IDs of the cards to show (search and filters); `null` when nothing narrows the board. */
   matches: Set<string> | null;
   dnd: DragAndDrop;
   onOpenCard: (cardId: string) => void;

@@ -27,6 +27,7 @@ Raw AI output is committed **before** each refinement, so every entry can be ver
 | [CL-14](#cl-14) | `tasks.md` | TR2 | Claude Code | Added test tooling setup, guideline and deliverable tasks, a performance check; all 187 criteria now referenced; tasks accepted |
 | [CL-15](#cl-15) | brief, `requirements.md`, `design.md`, `tasks.md` | Hosting change | Claude Code | API hosting moved from Railway to Vercel + Neon after payment was declined; brief v0.4 |
 | [CL-16](#cl-16) | `requirements.md`, `design.md`, `tasks.md` | Scope addition | Claude Code | Added REQ-33 (visual design and interaction feedback) and task 26; one planned criterion was removed after testing showed it broke the Kanban test |
+| [CL-17](#cl-17) | brief, `requirements.md`, `design.md`, `tasks.md` | Scope addition | Claude Code | Added REQ-34 to REQ-37 (labels, checklist, board filters) and tasks 27 to 29; two new blueprints; brief v0.5 |
 
 ---
 
@@ -651,3 +652,38 @@ The accepted documents were copied to `/specs`. Next phase: steering guidelines,
 - **How it was caught.** A single run of the suite had passed. The failure showed only when the test was repeated (`--repeat-each`) and only some of the time. Task 26.5 now says to repeat the suite against a production build.
 - **Checked by looking, not only by tests.** Drag feedback is visual, and no test asserts on it beyond the hook's state. It was checked in screenshots taken during a drag, in both themes: the lifted card, the ring on the target column and the insertion line all show.
 - **Existing tests.** No existing test was changed. `jest.setup.ts` gained a `matchMedia` stand-in, because jsdom does not have one and the theme code asks it for the OS setting. 21 Jest tests were added (87 in total).
+
+---
+
+## CL-17
+
+**Scope addition: card labels, card checklist and board filters (REQ-34 to REQ-37)**
+
+| Field | Value |
+| ----- | ----- |
+| Date | 2026-11-27 |
+| Artifact | `specs/project-brief.md` (v0.4 → v0.5), `requirements.md`, `design.md`, `tasks.md` (both in `/specs` and in `.kiro/specs/revotask-mvp/`) |
+| Tool | Claude Code |
+| Trigger | A decision by the author after the MVP and the visual upgrade were live, not a review finding |
+| Commits | before `19c9cd4` → after: the commit that adds this entry |
+
+**Trigger.** The author asked for the features that comparable products have on a card. Three were chosen because they are visible on the board itself and fit the existing data model: labels, a checklist, and filters. File attachments and live updates between users were considered and left out: both need a service the free hosting does not include.
+
+**Before → After.**
+
+| Document | Before | After |
+| -------- | ------ | ----- |
+| Brief §4 | Features F1 to F10 | F11 (labels), F12 (checklist), F13 (filters) added and marked "added in v0.5" |
+| `requirements.md` | 33 requirements, 197 criteria | 37 requirements, 225 criteria: REQ-34 (14), REQ-35 (8), REQ-36 (5), REQ-37 (1) |
+| `design.md` | 8 blueprints, 30 endpoints, 7 tables | New section with 3 models, 7 endpoints, the changed schemas and the query counts; 11 traceability rows. 10 blueprints, 37 endpoints, 10 tables |
+| `tasks.md` | 26 tasks | Tasks 27 to 29 |
+
+**What changed in existing behaviour.** Every response that contains a card now also has `labels` and `checklist`, and `GET /api/boards/<id>` has `labels`. These are additions; no existing field changed or went away. Three existing tests asserted the exact shape or the exact query count and were updated: the card's full JSON (two new keys), and the two query-count tests (5 → 8 for the board, 3 → 5 for the card list).
+
+**Review of the result.**
+
+- **The query-count tests were made harder before they were trusted.** With the new eager loads in place the old tests passed after only their numbers were changed, which proves nothing: their cards had no labels and no checklist. Each card in those tests now gets its own label and its own checklist item. Removing any one of the four new eager loads then fails a test.
+- **Eleven deliberate breakages, nine caught at first.** After the tests passed, the new code was broken on purpose in eleven places (dropped eager loads, a label of another board accepted, the case-insensitive name check made case-sensitive, a member allowed to delete a label, labels never removed from a card, the membership check on a checklist item removed, a constant `order`, an unordered relationship). Nine made a test fail. The two that survived were both about checklist order: every test added its items in the order it expected them back. Two tests were added, one that stores items out of order and one that adds an item after an existing high `order`. All eleven are now caught.
+- **A design fault found by the end-to-end test.** The first version of the checklist waited for the API before a box showed its tick. Playwright's `check()` failed with "Clicking the checkbox did not change its state", which is also what a user on a slow connection would have felt. Ticking is now optimistic, with a snapshot and a rollback as guideline FE-07 describes, and two Jest tests cover the immediate tick and the rollback.
+- **Repeated runs.** Following CL-16, the whole Playwright suite was run five times in a row against a production build: 55 passes in 55 runs.
+- **Guidelines.** The association table got a UUID key and timestamps (DB-01, DB-02) instead of the usual two-column table. The cards service does not write to `card_labels` itself; it calls the labels service (BE-09).

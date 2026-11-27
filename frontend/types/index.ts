@@ -48,6 +48,23 @@ export interface PersonRef {
   name: string;
 }
 
+/** One of the six marker colours; the same names the API accepts for a label's `color`. */
+export type LabelColor = "cobalt" | "teal" | "plum" | "poppy" | "amber" | "moss";
+
+/** A coloured tag that belongs to a board and can be put on its cards. */
+export interface Label {
+  id: string;
+  name: string;
+  color: LabelColor;
+}
+
+/** One step of a card's checklist, as it comes inside a card. */
+export interface ChecklistItem {
+  id: string;
+  text: string;
+  is_done: boolean;
+}
+
 export interface Card {
   id: string;
   column_id: string;
@@ -61,6 +78,10 @@ export interface Card {
   completed_at: string | null;
   created_by: string;
   assignee: PersonRef | null;
+  /** Sorted by name. */
+  labels: Label[];
+  /** In the order the items were added. */
+  checklist: ChecklistItem[];
 }
 
 export interface ColumnWithCards extends Column {
@@ -70,6 +91,8 @@ export interface ColumnWithCards extends Column {
 /** `GET /api/boards/<id>`: the board with its ordered columns and active cards. */
 export interface BoardDetail extends Board {
   columns: ColumnWithCards[];
+  /** Every label of the board, sorted by name. */
+  labels: Label[];
 }
 
 export interface Comment {

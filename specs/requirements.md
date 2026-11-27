@@ -588,3 +588,73 @@ RevoTask is a Trello-like task management web application consisting of two depl
 8. THE web app SHALL keep a contrast ratio of at least 4.5:1 between body text and its background in both themes.
 9. WHILE the operating system's `prefers-reduced-motion` setting is on, THE web app SHALL NOT play transitions or animations.
 10. THE changes for this requirement SHALL NOT add, remove or change any API endpoint, request field or response field.
+
+---
+
+### REQ-34: Card Labels
+
+**Reference:** F11 (added after the MVP was accepted; see CHANGELOG CL-17)
+
+**User Story:** As a Member or Admin, I want to tag cards with coloured labels that belong to the board, so that I can see at a glance what kind of work a card is.
+
+#### Acceptance Criteria
+
+1. WHEN a board member sends `POST /api/boards/<id>/labels` with a `name` of 1 to 40 characters after trimming and a `color` that is one of `cobalt`, `teal`, `plum`, `poppy`, `amber`, `moss`, THE API SHALL create the label on that board and return it with status `201`.
+2. IF the `name` is missing, empty after trimming or longer than 40 characters, or the `color` is not one of the six values, THEN THE API SHALL return status `400` and SHALL NOT create a label.
+3. IF the board already has a label with the same name, compared without regard to letter case, THEN THE API SHALL return status `409`.
+4. WHEN a board member sends `GET /api/boards/<id>/labels`, THE API SHALL return that board's labels sorted by name.
+5. WHEN a board member sends `PATCH /api/labels/<id>` with a `name`, a `color` or both, THE API SHALL update the label under the rules of criteria 1 to 3 and return it.
+6. WHEN a board admin sends `DELETE /api/labels/<id>`, THE API SHALL delete the label, remove it from every card that has it, and return `{ "data": { "id": "<id>" } }` with status `200`.
+7. IF a board member who is not an admin sends `DELETE /api/labels/<id>`, THEN THE API SHALL return status `403`.
+8. IF the caller is not a member of the label's board, or the label does not exist, THEN THE API SHALL return status `404` with the same message in both cases.
+9. WHEN `POST /api/columns/<id>/cards` or `PATCH /api/cards/<id>` carries `label_ids`, THE API SHALL set the card's labels to exactly that list.
+10. IF `label_ids` contains an ID that is not a label of the card's board, THEN THE API SHALL return status `400` and SHALL NOT change the card.
+11. THE API SHALL include `labels` (each with `id`, `name`, `color`), sorted by name, in every response that contains a card.
+12. THE API SHALL include the board's `labels` in the response of `GET /api/boards/<id>`.
+13. THE `CardItem` component SHALL show each of the card's labels as a chip with the label's name on the label's colour.
+14. THE `CardDetailModal` component SHALL let the user turn each of the board's labels on or off for the card and SHALL let the user create a new label with a name and a colour.
+
+---
+
+### REQ-35: Card Checklist
+
+**Reference:** F12 (added after the MVP was accepted; see CHANGELOG CL-17)
+
+**User Story:** As a Member or Admin, I want to break a card into small steps and tick them off, so that I can see how far a task has come.
+
+#### Acceptance Criteria
+
+1. WHEN a board member sends `POST /api/cards/<id>/checklist` with a `text` of 1 to 300 characters after trimming, THE API SHALL add the item at the end of the card's checklist, not done, and return it with status `201`.
+2. IF the `text` is missing, empty after trimming or longer than 300 characters, THEN THE API SHALL return status `400`.
+3. WHEN a board member sends `PATCH /api/checklist-items/<id>` with a `text`, an `is_done` flag or both, THE API SHALL update the item and return it.
+4. WHEN a board member sends `DELETE /api/checklist-items/<id>`, THE API SHALL delete the item and return `{ "data": { "id": "<id>" } }` with status `200`.
+5. IF the caller is not a member of the board, the item does not exist, or its card is soft-deleted, THEN THE API SHALL return status `404` with the same message in all three cases.
+6. THE API SHALL include `checklist` (each item with `id`, `text`, `is_done`), in the order the items were added, in every response that contains a card.
+7. THE `CardItem` component SHALL show the checklist's progress as "done of total" on every card that has at least one checklist item, and SHALL mark it as complete when all items are done.
+8. THE `CardDetailModal` component SHALL list the checklist with a checkbox per item, a progress bar, a control to add an item and a control to delete an item.
+
+---
+
+### REQ-36: Board Filters
+
+**Reference:** F13 (added after the MVP was accepted; see CHANGELOG CL-17)
+
+**User Story:** As a Member or Admin, I want to narrow the board down to the cards I care about, so that a busy board stays readable.
+
+#### Acceptance Criteria
+
+1. THE `/boards/[id]` page SHALL offer filters for assignee (anyone, a specific person, unassigned), priority, label and due date (overdue, due in the next 7 days, no due date).
+2. WHILE one or more filters are set, THE `/boards/[id]` page SHALL show only the cards that match every filter that is set, and SHALL keep every column in place.
+3. WHILE a card search (REQ-13) and filters are both active, THE `/boards/[id]` page SHALL show only the cards that match both.
+4. WHILE one or more filters are set, THE `/boards/[id]` page SHALL show how many cards match and a control that clears all filters.
+5. THE filters SHALL be applied in the browser to the cards already loaded and SHALL NOT send a request.
+
+---
+
+### REQ-37: Loading Related Card Data
+
+**Reference:** NFR-2 (added with REQ-34 and REQ-35)
+
+#### Acceptance Criteria
+
+1. THE API SHALL load the labels and checklist items of the cards returned by `GET /api/boards/<id>` and `GET /api/cards` with a fixed number of queries that does not grow with the number of cards.

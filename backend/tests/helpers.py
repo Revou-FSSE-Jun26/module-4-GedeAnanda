@@ -3,7 +3,15 @@
 from datetime import datetime, timezone
 
 from app.extensions import db
-from app.models import BoardColumn, Card, Comment, Notification
+from app.models import (
+    BoardColumn,
+    Card,
+    CardLabel,
+    ChecklistItem,
+    Comment,
+    Label,
+    Notification,
+)
 
 
 def assert_error(res, status):
@@ -53,3 +61,23 @@ def add_notification(user, message="Something happened", created_at=None, is_rea
     db.session.add(notification)
     db.session.commit()
     return notification
+
+
+def add_label(board, name, color="cobalt"):
+    label = Label(board_id=board.id, name=name, color=color)
+    db.session.add(label)
+    db.session.commit()
+    return label
+
+
+def tag(card, label):
+    """Put a label on a card."""
+    db.session.add(CardLabel(card_id=card.id, label_id=label.id))
+    db.session.commit()
+
+
+def add_item(card, text, order, is_done=False):
+    item = ChecklistItem(card_id=card.id, text=text, order=order, is_done=is_done)
+    db.session.add(item)
+    db.session.commit()
+    return item

@@ -1,11 +1,14 @@
 from marshmallow import EXCLUDE, Schema, ValidationError, fields, validate, validates_schema
 
+from app.blueprints.checklists.schema import ChecklistItemOut
 from app.blueprints.columns.schema import OrderOut
+from app.blueprints.labels.schema import LabelOut
 from app.utils.fields import TrimmedString
 
 PRIORITIES = ("low", "medium", "high")
 TITLE_LENGTH = validate.Length(min=1, max=200)
 DESCRIPTION_LENGTH = validate.Length(max=5000)
+LABEL_COUNT = validate.Length(max=20)
 
 
 class CardSchema(Schema):
@@ -14,6 +17,7 @@ class CardSchema(Schema):
     assignee_id = fields.UUID(allow_none=True, load_default=None)
     due_date = fields.Date(allow_none=True, load_default=None)
     priority = fields.String(load_default="medium", validate=validate.OneOf(PRIORITIES))
+    label_ids = fields.List(fields.UUID(), load_default=list, validate=LABEL_COUNT)
 
 
 class CardUpdateSchema(Schema):
@@ -24,6 +28,7 @@ class CardUpdateSchema(Schema):
     assignee_id = fields.UUID(allow_none=True)
     due_date = fields.Date(allow_none=True)
     priority = fields.String(validate=validate.OneOf(PRIORITIES))
+    label_ids = fields.List(fields.UUID(), validate=LABEL_COUNT)
 
     @validates_schema
     def require_a_field(self, data, **kwargs):
@@ -68,6 +73,8 @@ class CardOut(Schema):
     completed_at = fields.DateTime(dump_only=True, allow_none=True)
     created_by = fields.UUID(dump_only=True)
     assignee = fields.Nested(AssigneeOut, dump_only=True, allow_none=True)
+    labels = fields.Nested(LabelOut, many=True, dump_only=True)
+    checklist = fields.Nested(ChecklistItemOut(exclude=("card_id",)), many=True, dump_only=True)
 
 
 class CardMoveOut(Schema):

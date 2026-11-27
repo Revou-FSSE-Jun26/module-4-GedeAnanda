@@ -28,6 +28,8 @@ function card(id: string, column_id: string, order: number): Card {
     completed_at: null,
     created_by: "user",
     assignee: null,
+    labels: [],
+    checklist: [],
   };
 }
 

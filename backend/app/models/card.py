@@ -24,6 +24,17 @@ class Card(BaseModel):
     creator = db.relationship("User", foreign_keys=[created_by], back_populates="created_cards")
     assignee = db.relationship("User", foreign_keys=[assignee_id], back_populates="assigned_cards")
     comments = db.relationship("Comment", back_populates="card", cascade="all, delete-orphan")
+    label_links = db.relationship("CardLabel", back_populates="card", cascade="all, delete-orphan")
+    # Read-only view through the link table; change a card's labels through `label_links`.
+    labels = db.relationship(
+        "Label", secondary="card_labels", viewonly=True, order_by="Label.name"
+    )
+    checklist = db.relationship(
+        "ChecklistItem",
+        back_populates="card",
+        cascade="all, delete-orphan",
+        order_by="ChecklistItem.order",
+    )
 
     @property
     def board_id(self):

@@ -6,6 +6,7 @@ export type IconName =
   | "chart"
   | "check"
   | "close"
+  | "filter"
   | "moon"
   | "people"
   | "plus"
@@ -28,6 +29,7 @@ const PATHS: Record<IconName, ReactNode> = {
   chart: <path d="M5 20V10M12 20V4M19 20v-7" />,
   check: <path d="m5 12.5 4.5 4.5L19 7" />,
   close: <path d="M6 6l12 12M18 6 6 18" />,
+  filter: <path d="M4 6h16M7 12h10M10 18h4" />,
   moon: <path d="M20 14.5A8 8 0 0 1 9.5 4a7 7 0 1 0 10.5 10.5Z" />,
   people: (
     <>

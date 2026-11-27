@@ -826,6 +826,53 @@ Added after the MVP was accepted (CHANGELOG CL-16). It changes how the web app l
 
 **Not included: loading skeletons.** Route-level `loading.tsx` files were built and removed. They make Next.js stream the page, and while the streamed content is being put in place the board exists twice in the DOM for a moment, once hidden. The Kanban end-to-end test then failed 4 times out of 12 against a production build with a strict-mode error. Without them the suite passed 60 times out of 60.
 
+## Labels, Checklists and Board Filters (REQ-34 to REQ-37)
+
+Added after the MVP was accepted (CHANGELOG CL-17). Two new blueprints, `labels` and `checklists`, follow the same three-file layout as the first eight. The filters are web-only.
+
+### Models
+
+| Model (table) | Columns besides `id`, `created_at`, `updated_at` | Constraints |
+| ------------- | ------------------------------------------------- | ----------- |
+| `Label` (`labels`) | `board_id` → `boards.id` (indexed), `name` String(40), `color` String(10) | `uq_label_board_name` on (`board_id`, `name`) |
+| `CardLabel` (`card_labels`) | `card_id` → `cards.id` (indexed), `label_id` → `labels.id` (indexed) | `uq_card_label` on (`card_id`, `label_id`) |
+| `ChecklistItem` (`checklist_items`) | `card_id` → `cards.id` (indexed), `text` String(300), `is_done` Boolean, `order` Float | |
+
+`CardLabel` is a full model with its own UUID key and timestamps, not a bare association table, because guidelines DB-01 and DB-02 apply to every table. Ownership is expressed with ORM cascades (DB-05): `Board.labels`, `Label.card_links`, `Card.label_links` and `Card.checklist` are all `cascade="all, delete-orphan"`. `Card.labels` is a read-only (`viewonly`) relationship through `card_labels`, sorted by name; `Card.checklist` is sorted by `order`.
+
+Migration `d31e163fb23e` creates the three tables. It only adds tables, so it is safe on a database that already has data.
+
+### Endpoints
+
+| Method | Path | Who | Success | Errors |
+| ------ | ---- | --- | ------- | ------ |
+| GET | `/api/boards/<id>/labels` | member | `200` list sorted by name | `404` |
+| POST | `/api/boards/<id>/labels` | member | `201` label | `400`, `404`, `409` duplicate name (case-insensitive) |
+| PATCH | `/api/labels/<id>` | member | `200` label | `400`, `404`, `409` |
+| DELETE | `/api/labels/<id>` | admin | `200 { "data": { "id" } }` | `403` member, `404` |
+| POST | `/api/cards/<id>/checklist` | member | `201` item | `400`, `404` |
+| PATCH | `/api/checklist-items/<id>` | member | `200` item | `400`, `404` |
+| DELETE | `/api/checklist-items/<id>` | member | `200 { "data": { "id" } }` | `404` |
+
+A card's labels are set through the card endpoints: `label_ids` on `CardSchema` (default `[]`) and `CardUpdateSchema`. The list replaces the card's labels. The cards service hands the list to `labels.service.set_card_labels`, which checks that every ID is a label of the card's board and raises `400` before anything is changed (guideline BE-09: the labels blueprint owns the link table).
+
+### Schemas
+
+- `LabelSchema` (`name` 1–40 trimmed, `color` one of six), `LabelUpdateSchema` (either field, at least one), `LabelOut` (`id`, `name`, `color`).
+- `ChecklistItemSchema` (`text` 1–300 trimmed), `ChecklistItemUpdateSchema` (`text`, `is_done`, at least one), `ChecklistItemOut` (`id`, `card_id`, `text`, `is_done`).
+- `CardOut` gains `labels` (list of `LabelOut`) and `checklist` (list of `ChecklistItemOut` without `card_id`). `BoardDetailOut` gains `labels`.
+
+### Query count (REQ-37)
+
+`get_board` adds three `selectinload`s: the cards' labels, the cards' checklists, and the board's labels. It now runs 8 queries for any number of cards (was 5). `list_cards` adds two and runs 5 (was 3). The query-count tests give every card its own label and its own checklist item, so removing any one eager load adds a query per card and fails the test.
+
+### Web
+
+- `types/index.ts`: `Label`, `ChecklistItem`, `LabelColor`; `Card.labels`, `Card.checklist`, `BoardDetail.labels`.
+- `components/shared/LabelChip.tsx`; `CardItem` shows the chips and the checklist progress ("2/4", marked complete when all are done).
+- `components/board/CardLabels.tsx` and `components/board/CardChecklist.tsx` are sections of `CardDetailModal`. Ticking a step is optimistic with a snapshot and rollback (guideline FE-07); adding and deleting wait for the API.
+- `lib/filters.ts` holds the filter logic as pure functions (`matchesFilters`, `visibleCardIds`, `assigneesOf`). `components/board/BoardFilters.tsx` renders four `SelectField`s. `KanbanBoard` combines the filters with the title search and passes one set of visible card IDs to `ColumnList`. No request is sent.
+
 ## Response Schemas
 
 > *Marshmallow dump-only schemas used to serialise API responses. These are used in the endpoint catalog below. The `password_hash` field is never included in any response schema.*
@@ -1305,3 +1352,14 @@ Runs against the live deployment (web and API on Vercel, database on Neon). Uses
 | REQ-33 | 8 | Contrast in both themes | token values in `frontend/app/globals.css` |
 | REQ-33 | 9 | Reduced motion | `@media (prefers-reduced-motion: reduce)` in `frontend/app/globals.css` |
 | REQ-33 | 10 | No API change | no file under `backend/` changed |
+| REQ-34 | 1–8 | Label CRUD, validation, 409, 403, 404 | `backend/app/blueprints/labels/{routes,service,schema}.py`, `backend/app/models/label.py` |
+| REQ-34 | 9–10 | `label_ids` on cards | `labels.service.set_card_labels`, called from `backend/app/blueprints/cards/service.py`; `CardSchema`, `CardUpdateSchema` |
+| REQ-34 | 11–12 | `labels` in card and board responses | `CardOut`, `BoardDetailOut` |
+| REQ-34 | 13 | Label chips on cards | `frontend/components/shared/LabelChip.tsx`, `frontend/components/board/CardItem.tsx` |
+| REQ-34 | 14 | Label picker and "new label" form | `frontend/components/board/CardLabels.tsx` |
+| REQ-35 | 1–5 | Checklist item create, update, delete, 404 | `backend/app/blueprints/checklists/{routes,service,schema}.py`, `backend/app/models/checklist_item.py` |
+| REQ-35 | 6 | `checklist` in card responses | `CardOut`, `Card.checklist` ordered by `order` |
+| REQ-35 | 7 | Progress on cards | `frontend/components/board/CardItem.tsx` |
+| REQ-35 | 8 | Checklist section in the modal | `frontend/components/board/CardChecklist.tsx` |
+| REQ-36 | 1–5 | Board filters | `frontend/lib/filters.ts`, `frontend/components/board/BoardFilters.tsx`, `frontend/components/board/KanbanBoard.tsx` |
+| REQ-37 | 1 | Fixed query count | `get_board` in `boards/service.py`, `list_cards` in `cards/service.py` |

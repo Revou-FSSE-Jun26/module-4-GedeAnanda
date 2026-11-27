@@ -10,6 +10,9 @@ class Board(BaseModel):
 
     owner = db.relationship("User", foreign_keys=[owner_id])
     members = db.relationship("BoardMember", back_populates="board", cascade="all, delete-orphan")
+    labels = db.relationship(
+        "Label", back_populates="board", cascade="all, delete-orphan", order_by="Label.name"
+    )
     columns = db.relationship(
         "BoardColumn",
         back_populates="board",

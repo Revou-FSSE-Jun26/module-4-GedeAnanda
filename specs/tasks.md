@@ -470,6 +470,46 @@ This plan builds the RevoTask MVP in incremental layers: backend skeleton → he
     - Jest tests for `Avatar`, `lib/color`, `ThemeToggle` and the drop-target state of `useDragAndDrop`; all existing Jest and Playwright tests must still pass without being weakened; run the Playwright suite several times in a row against a production build to catch timing-dependent failures
     - _Requirements: REQ-33.1–33.6, REQ-33.10, REQ-23.2–23.5_
 
+- [x] 27. Card labels (added after acceptance, CHANGELOG CL-17)
+  - [x] 27.1 Models and migration
+    - `Label` (`labels`: `board_id`, `name`, `color`; unique name per board, named constraint) and `CardLabel` (`card_labels`: `card_id`, `label_id`; unique pair, named constraint), both on `BaseModel`; one Flask-Migrate migration for this task and task 28 together
+    - _Requirements: REQ-34.1, REQ-34.3, REQ-34.6_
+
+  - [x] 27.2 `labels` blueprint: routes, service, schemas
+    - `GET` / `POST /api/boards/<id>/labels`, `PATCH` / `DELETE /api/labels/<id>`; `set_card_labels` in the labels service, called by the cards service; `label_ids` on `CardSchema` and `CardUpdateSchema`; `labels` on `CardOut` and `BoardDetailOut`
+    - _Requirements: REQ-34.1–34.12_
+
+  - [x] 27.3 pytest tests for labels
+    - _Requirements: REQ-34.1–34.12, REQ-37.1_
+
+  - [x] 27.4 Web: label chips on cards, label picker and "new label" form in the card modal
+    - _Requirements: REQ-34.13, REQ-34.14_
+
+- [x] 28. Card checklist (added after acceptance, CHANGELOG CL-17)
+  - [x] 28.1 Model
+    - `ChecklistItem` (`checklist_items`: `card_id`, `text`, `is_done`, FLOAT `order`) on `BaseModel`
+    - _Requirements: REQ-35.1_
+
+  - [x] 28.2 `checklists` blueprint: routes, service, schemas
+    - `POST /api/cards/<id>/checklist`, `PATCH` / `DELETE /api/checklist-items/<id>`; `checklist` on `CardOut`
+    - _Requirements: REQ-35.1–35.6_
+
+  - [x] 28.3 pytest tests for the checklist, and query-count tests for the board and card lists
+    - _Requirements: REQ-35.1–35.6, REQ-37.1_
+
+  - [x] 28.4 Web: progress on cards, checklist section in the card modal
+    - _Requirements: REQ-35.7, REQ-35.8_
+
+- [x] 29. Board filters (added after acceptance, CHANGELOG CL-17)
+  - [x] 29.1 `lib/filters.ts` (pure functions) and `BoardFilters` component
+    - _Requirements: REQ-36.1–36.5_
+
+  - [x] 29.2 Jest tests for `lib/filters.ts`; one Playwright scenario for labels, checklist and filters
+    - _Requirements: REQ-36.1–36.4, REQ-34.13, REQ-35.7_
+
+  - [x] 29.3 Deploy the API (the build runs the migration), then the web app; run the Playwright suite against the live URLs
+    - _Requirements: REQ-23.3–23.5_
+
 ## Notes
 
 - Tasks marked with `*` are optional and can be skipped for a faster MVP (there are no optional sub-tasks in this plan — all tests are core requirements per REQ-23).

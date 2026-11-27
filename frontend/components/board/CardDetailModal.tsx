@@ -3,6 +3,8 @@
 import { useEffect, useState, type FormEvent } from "react";
 
 import { PRIORITY_OPTIONS } from "@/components/board/AddCardForm";
+import { CardChecklist } from "@/components/board/CardChecklist";
+import { CardLabels } from "@/components/board/CardLabels";
 import { CommentList } from "@/components/board/CommentList";
 import { BaseButton } from "@/components/shared/BaseButton";
 import { BaseModal } from "@/components/shared/BaseModal";
@@ -13,14 +15,17 @@ import { useAuth } from "@/context/AuthContext";
 import { useErrorHandler } from "@/hooks/useErrorHandler";
 import { apiClient } from "@/lib/apiClient";
 import { toast } from "@/lib/toast";
-import type { BoardMember, Card, Column, Comment, Deleted, Priority, Role } from "@/types";
+import type { BoardMember, Card, Column, Comment, Deleted, Label, Priority, Role } from "@/types";
 
 interface CardDetailModalProps {
   card: Card;
   columns: Column[];
+  /** Every label of the board. */
+  labels: Label[];
   role: Role;
   onClose: () => void;
   onSaved: (card: Card) => void;
+  onLabelCreated: (label: Label) => void;
   onDeleted: (cardId: string) => void;
   onMove: (cardId: string, columnId: string) => void;
 }
@@ -29,14 +34,17 @@ const UNASSIGNED = "";
 
 /**
  * A card's details inside `BaseModal`: editable fields, the "Move to column"
- * select (the way to move a card without a mouse or on a phone), and its comments.
+ * select (the way to move a card without a mouse or on a phone), its labels,
+ * its checklist and its comments.
  */
 export function CardDetailModal({
   card,
   columns,
+  labels,
   role,
   onClose,
   onSaved,
+  onLabelCreated,
   onDeleted,
   onMove,
 }: CardDetailModalProps) {
@@ -210,6 +218,9 @@ export function CardDetailModal({
           </BaseButton>
         </div>
       </form>
+
+      <CardLabels card={card} labels={labels} onSaved={onSaved} onLabelCreated={onLabelCreated} />
+      <CardChecklist card={card} onSaved={onSaved} />
 
       <section aria-labelledby="comments-heading" className="mt-6 border-t border-line pt-5">
         <h3 id="comments-heading" className="mb-3 font-display text-lg font-semibold">

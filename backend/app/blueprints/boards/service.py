@@ -44,13 +44,17 @@ def get_board(user_id: uuid.UUID, board_id: uuid.UUID) -> BoardMember:
     The number of queries is fixed, whatever the number of columns and cards.
     """
     membership = require_member(user_id, board_id)
+    cards = selectinload(Board.columns).selectinload(
+        BoardColumn.cards.and_(Card.deleted_at.is_(None))
+    )
     board = db.session.scalars(
         select(Board)
         .where(Board.id == board_id)
         .options(
-            selectinload(Board.columns)
-            .selectinload(BoardColumn.cards.and_(Card.deleted_at.is_(None)))
-            .selectinload(Card.assignee)
+            cards.selectinload(Card.assignee),
+            cards.selectinload(Card.labels),
+            cards.selectinload(Card.checklist),
+            selectinload(Board.labels),
         )
         # Replace collections already in the session, so the deleted-card filter always applies.
         .execution_options(populate_existing=True)

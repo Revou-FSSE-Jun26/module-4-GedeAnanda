@@ -36,8 +36,10 @@ def register_blueprints(app: Flask) -> None:
     from app.blueprints.auth.routes import auth_bp
     from app.blueprints.boards.routes import boards_bp
     from app.blueprints.cards.routes import cards_bp
+    from app.blueprints.checklists.routes import checklists_bp
     from app.blueprints.columns.routes import columns_bp
     from app.blueprints.comments.routes import comments_bp
+    from app.blueprints.labels.routes import labels_bp
     from app.blueprints.notifications.routes import notifications_bp
     from app.blueprints.users.routes import users_bp
 
@@ -50,6 +52,8 @@ def register_blueprints(app: Flask) -> None:
         notifications_bp,
         analytics_bp,
         users_bp,
+        labels_bp,
+        checklists_bp,
     ):
         app.register_blueprint(blueprint)
 

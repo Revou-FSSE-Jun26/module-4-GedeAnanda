@@ -1,6 +1,7 @@
 from marshmallow import Schema, fields, validate
 
 from app.blueprints.cards.schema import CardOut
+from app.blueprints.labels.schema import LabelOut
 from app.blueprints.columns.schema import ColumnOut
 from app.utils.auth import ROLE_ADMIN, ROLE_MEMBER
 from app.utils.fields import TrimmedString
@@ -37,6 +38,7 @@ class BoardColumnOut(ColumnOut):
 
 class BoardDetailOut(BoardOut):
     columns = fields.Nested(BoardColumnOut, many=True, attribute="board.columns", dump_only=True)
+    labels = fields.Nested(LabelOut, many=True, attribute="board.labels", dump_only=True)
 
 
 class MemberOut(Schema):

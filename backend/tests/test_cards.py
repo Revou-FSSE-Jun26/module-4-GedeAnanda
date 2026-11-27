@@ -8,7 +8,7 @@ import pytest
 from app.extensions import db
 from app.models import Board, BoardMember, Card, Notification, User
 from tests.conftest import make_board
-from tests.helpers import add_card, add_column, assert_error
+from tests.helpers import add_card, add_column, add_item, add_label, assert_error, tag
 
 
 @pytest.fixture
@@ -70,6 +70,8 @@ def test_create_card_with_only_a_title_returns_201_with_defaults(
         "completed_at": None,
         "created_by": str(test_user_2.id),
         "assignee": None,
+        "labels": [],
+        "checklist": [],
     }
 
 
@@ -498,8 +500,12 @@ def test_list_cards_uses_a_fixed_number_of_queries(
         for index in range(first, last + 1):
             column = add_column(db.session.get(Board, board_id), f"Column {index}", index * 1024)
             for position in range(1, 4):
-                add_card(column, users[0], f"Card {position}", position * 1024,
-                         assignee=users[position % 2])
+                card = add_card(column, users[0], f"Card {position}", position * 1024,
+                                assignee=users[position % 2])
+                # A different label and its own checklist per card, so a missing eager
+                # load costs one query per card and the test notices.
+                tag(card, add_label(db.session.get(Board, board_id), f"Label {index}.{position}"))
+                add_item(card, "Step", 1024)
         db.session.expunge_all()  # an empty session, as at the start of a real request
 
     add_columns(1, 1)
@@ -508,7 +514,8 @@ def test_list_cards_uses_a_fixed_number_of_queries(
     res, large = count_queries(lambda: client.get(url, headers=headers))
 
     assert len(res.get_json()["data"]) == 15
-    assert small == 3  # membership; cards with column and board; assignees
+    assert all(len(c["labels"]) == 1 and len(c["checklist"]) == 1 for c in res.get_json()["data"])
+    assert small == 5  # membership; cards with column and board; assignees; labels; checklists
     assert large == small
 
 

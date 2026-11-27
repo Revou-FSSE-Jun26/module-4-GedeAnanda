@@ -2,7 +2,7 @@
 
 | Field   | Value                                                                 |
 | ------- | --------------------------------------------------------------------- |
-| Version | 0.4                                                                   |
+| Version | 0.5                                                                   |
 | Date    | 2026-11-26                                                            |
 | Status  | Draft — input for Kiro spec generation (`requirements.md` → `design.md` → `tasks.md`) |
 | Scope   | Flask REST API + Next.js web app, both deployed publicly              |
@@ -58,6 +58,9 @@ Roles are **per board** and stored on the board membership (`BoardMember.role = 
 | F8 | Card search | Search box on the board page that filters cards by title, debounced by 300 ms. |
 | F9 | Profile | View and update own name and email. Password changes are not allowed here. |
 | F10 | Board analytics | Per board: total cards per column, cards completed this week, and per-member activity, computed with SQLAlchemy joins in the service layer. |
+| F11 | Card labels | Added in v0.5. Coloured labels that belong to a board; a card can have several. Any member creates and renames labels, an admin deletes them. |
+| F12 | Card checklist | Added in v0.5. A card can be broken into steps that are ticked off; the card shows the progress. |
+| F13 | Board filters | Added in v0.5. Narrow the board by assignee, priority, label and due date, in the browser, combined with the card search. |
 | F11 | Member access management | Admin adds a member by email, removes a member, and changes a member's role. |
 
 ### Card fields
