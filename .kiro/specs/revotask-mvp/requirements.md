@@ -2,11 +2,11 @@
 
 ## Introduction
 
-RevoTask is a Trello-like task management web application consisting of two deployables: the RevoTask API (Flask REST API with PostgreSQL, deployed on Railway) and RevoTask Web (Next.js App Router frontend, deployed on Vercel). Users create boards, organise work into columns, manage cards with drag-and-drop, discuss tasks through comments, receive in-app notifications, and view all assigned tasks on a personal My Tasks page. Board administrators control membership and monitor progress through per-board analytics. This document covers the full MVP feature set (F1–F11) and non-functional requirements (NFR-1–NFR-7).
+RevoTask is a Trello-like task management web application consisting of two deployables: the RevoTask API (Flask REST API with PostgreSQL, deployed on Vercel with a Neon PostgreSQL database) and RevoTask Web (Next.js App Router frontend, deployed on Vercel). Users create boards, organise work into columns, manage cards with drag-and-drop, discuss tasks through comments, receive in-app notifications, and view all assigned tasks on a personal My Tasks page. Board administrators control membership and monitor progress through per-board analytics. This document covers the full MVP feature set (F1–F11) and non-functional requirements (NFR-1–NFR-7).
 
 ## Glossary
 
-- **API**: The RevoTask Flask REST API, deployed on Railway.
+- **API**: The RevoTask Flask REST API, deployed on Vercel (Python runtime) with a Neon PostgreSQL database.
 - **Web**: The RevoTask Next.js frontend, deployed on Vercel.
 - **Guest**: A user who is not authenticated; can only access the register and login pages/endpoints.
 - **Member**: A user who belongs to a board with the role `member`.

@@ -4,7 +4,7 @@
 
 RevoTask is a Trello-like task management application composed of two deployables:
 
-- **RevoTask API** — Flask REST API with PostgreSQL, deployed on Railway.
+- **RevoTask API** — Flask REST API with PostgreSQL, deployed on Vercel (Python runtime) with a Neon PostgreSQL database.
 - **RevoTask Web** — Next.js (App Router) frontend, deployed on Vercel.
 
 The API follows the app-factory + Blueprint pattern. Each feature lives in its own Blueprint and is split across three files: `routes.py` (HTTP handling), `service.py` (business logic and queries), and `schema.py` (Marshmallow validation and serialisation). All responses use the JSON envelope `{ "data": ... }` on success and `{ "error": "..." }` on failure.
@@ -21,8 +21,8 @@ graph TD
     MW["middleware.ts\n(route protection)"]
     SC["Server Components\n(Dashboard, Board Detail)"]
     CC["Client Components\n(Kanban, Modals, Header)"]
-    API["Flask API (Railway)"]
-    PG["PostgreSQL (Railway)"]
+    API["Flask API (Vercel Function)"]
+    PG["PostgreSQL (Neon)"]
 
     Browser -->|page request| MW
     MW -->|authenticated| SC
@@ -567,7 +567,7 @@ backend/
 ├── app/
 │   ├── __init__.py               # App factory: create_app(), registers extensions, blueprints, health endpoint, error handlers
 │   ├── config.py                 # Config class; normalises DATABASE_URL by replacing a leading "postgres://" with
-│   │                             # "postgresql://" (Railway compatibility); required env vars: DATABASE_URL,
+│   │                             # "postgresql://" (some hosts issue the short scheme); required env vars: DATABASE_URL,
 │   │                             # SECRET_KEY, JWT_SECRET_KEY, CORS_ORIGINS, FLASK_ENV
 │   ├── extensions.py             # Shared extension instances: db, migrate, jwt, cors
 │   ├── models/
@@ -630,7 +630,7 @@ backend/
 │   ├── test_notifications.py # List and mark-read: success + 400/401/404
 │   ├── test_analytics.py     # Analytics: success + 401/403/404
 │   └── test_users.py         # Profile get/update: success + 400/401/409
-├── wsgi.py                       # Gunicorn entry point: from app import create_app; app = create_app()
+├── wsgi.py                       # WSGI entry point, detected by Vercel: from app import create_app; app = create_app()
 ├── requirements.txt              # All Python dependencies
 └── .env.example                  # Template listing required environment variables (no real values)
 ```
@@ -1112,7 +1112,7 @@ Unit tests for hooks (`useDragAndDrop`, `useNotifications`, `useErrorHandler`) a
 
 ### End-to-End (Playwright)
 
-Runs against the live Vercel + Railway deployment. Uses `role` and `data-testid` selectors; no `waitForTimeout`.
+Runs against the live deployment (web and API on Vercel, database on Neon). Uses `role` and `data-testid` selectors; no `waitForTimeout`.
 
 **Auth scenarios (4):**
 1. Successful login redirects to `/`.

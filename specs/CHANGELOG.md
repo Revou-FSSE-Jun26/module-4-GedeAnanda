@@ -25,6 +25,7 @@ Raw AI output is committed **before** each refinement, so every entry can be ver
 | [CL-12](#cl-12) | `design.md` | DR5 | Kiro (Spec) | Mapped the last unmapped criterion (REQ-2.6); design accepted with 187/187 criteria traced |
 | [CL-13](#cl-13) | `tasks.md` | TR1 | Claude Code | Removed 2 invented behaviors, fixed a build-breaking module, the test database and the CORS setup |
 | [CL-14](#cl-14) | `tasks.md` | TR2 | Claude Code | Added test tooling setup, guideline and deliverable tasks, a performance check; all 187 criteria now referenced; tasks accepted |
+| [CL-15](#cl-15) | brief, `requirements.md`, `design.md`, `tasks.md` | Hosting change | Claude Code | API hosting moved from Railway to Vercel + Neon after payment was declined; brief v0.4 |
 
 ---
 
@@ -579,3 +580,41 @@ Next phase: `tasks.md`.
 | `tasks.md` | 2 invented behaviors, 172/187 criteria referenced | 187/187 referenced, 30/30 endpoints | TR1–TR2 (Claude Code) |
 
 The accepted documents were copied to `/specs`. Next phase: steering guidelines, then code.
+
+---
+
+## CL-15
+
+**Hosting change: the API moves from Railway to Vercel + Neon**
+
+| Field | Value |
+| ----- | ----- |
+| Date | 2026-11-27 |
+| Artifact | `specs/project-brief.md` (v0.3 → v0.4), `requirements.md`, `design.md`, `tasks.md` (both in `/specs` and in `.kiro/specs/revotask-mvp/`) |
+| Tool | Claude Code |
+| Trigger | A constraint discovered at deploy time, not a review finding |
+| Commits | before `2f43cbb` → after: the commit that adds this entry |
+
+**Trigger.** The specification named Railway for the API and its database. When it was time to deploy, the author's card was declined by Railway, and by Render as the first alternative, so neither platform could be used. The mentor approved deploying the API elsewhere. This is the only entry in this log where the documents changed because of the outside world and not because the AI's output was wrong.
+
+**Decision.** The API runs on Vercel's Python runtime as a second Vercel project (root directory `backend/`), and PostgreSQL runs on Neon. Both have a free tier that needs no card. The web app stays on Vercel as planned.
+
+**Before → After.**
+
+| Document | Before | After |
+| -------- | ------ | ----- |
+| Brief §6 (stack) | Hosting: Railway (API + PostgreSQL), Vercel (web). Server: Gunicorn | Hosting: Vercel (API and web, two projects), Neon (PostgreSQL). Server: Vercel Functions (Python runtime) |
+| Brief §11 (risks) | "Run `flask db upgrade` as Railway's pre-deploy or start step" | "Run `flask db upgrade` as the API project's Vercel build command"; new risk row for cold starts and Neon's idle suspend |
+| `requirements.md` | Introduction and glossary: "deployed on Railway" | "deployed on Vercel (Python runtime) with a Neon PostgreSQL database" |
+| `design.md` | Architecture diagram nodes "Flask API (Railway)", "PostgreSQL (Railway)"; `wsgi.py` described as the Gunicorn entry point | "Flask API (Vercel Function)", "PostgreSQL (Neon)"; `wsgi.py` is the WSGI entry point Vercel detects |
+| `tasks.md` task 3 | "Railway early deploy": `Procfile` or `railway.toml` with `gunicorn wsgi:app`; migration in the Railway deploy pipeline | "API deploy (Vercel + Neon)": `backend/vercel.json` whose build command runs `flask db upgrade`, and `backend/.python-version` |
+| `tasks.md` tasks 1.1, 22, 24, 25 | `gunicorn` in `requirements.txt`; "Railway public URL"; "Vercel + Railway URLs" | `gunicorn` removed; "the API's public Vercel URL"; "the live web and API URLs" |
+
+**What did not change.** No acceptance criterion, endpoint, model, status code or frontend behavior. All 32 requirements and 187 criteria are untouched, which is why the traceability tables needed no edit. The application code needed no change either: it reads `DATABASE_URL` from the environment and exports a WSGI `app`, and both platforms accept that.
+
+**Review of the result.**
+
+- **Checked by search.** After the edit, `Railway` appears in the specification documents only in this log and in the brief's history row, where it describes what was changed.
+- **One consequence for a non-functional target.** REQ-19.1 (board load under 500 ms at the 95th percentile) was written with an always-on server in mind. A serverless function has a cold start after idling. The requirement is kept as written; the measurement in the README reports warm requests against the target and states the cold-start time separately instead of hiding it.
+- **Order of work also changed.** The plan called for an *early* API deploy, right after the health endpoint. In practice the deploy happened after all code was written, because the hosting question was open. The risk that plan was guarding against (finding deploy problems late) was therefore accepted, not avoided.
+

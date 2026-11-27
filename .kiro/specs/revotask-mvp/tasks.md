@@ -2,7 +2,7 @@
 
 ## Overview
 
-This plan builds the RevoTask MVP in incremental layers: backend skeleton → health endpoint → early Railway deploy → each Flask blueprint (implementation + tests) → frontend skeleton → pages and feature components → Vercel deploy → Playwright E2E. Each step produces working, tested code before the next begins.
+This plan builds the RevoTask MVP in incremental layers: backend skeleton → health endpoint → API deploy (Vercel + Neon) → each Flask blueprint (implementation + tests) → frontend skeleton → pages and feature components → Vercel deploy → Playwright E2E. Each step produces working, tested code before the next begins.
 
 ## Tasks
 
@@ -15,14 +15,14 @@ This plan builds the RevoTask MVP in incremental layers: backend skeleton → he
 - [ ] 1. Backend project skeleton
   - [ ] 1.1 Scaffold `backend/` folder structure and core files
     - Create `backend/app/__init__.py` with the `create_app()` application factory; register extensions, blueprints, error handlers, and the health endpoint placeholder
-    - Create `backend/app/config.py` with the `Config` class; normalise `DATABASE_URL` by replacing a leading `"postgres://"` with `"postgresql://"` (Railway compatibility); read `DATABASE_URL`, `SECRET_KEY`, `JWT_SECRET_KEY`, `CORS_ORIGINS`, `FLASK_ENV` from environment; set `JWT_ACCESS_TOKEN_EXPIRES` to 24 hours; set `debug = False` for production
+    - Create `backend/app/config.py` with the `Config` class; normalise `DATABASE_URL` by replacing a leading `"postgres://"` with `"postgresql://"` (some hosts issue the short scheme); read `DATABASE_URL`, `SECRET_KEY`, `JWT_SECRET_KEY`, `CORS_ORIGINS`, `FLASK_ENV` from environment; set `JWT_ACCESS_TOKEN_EXPIRES` to 24 hours; set `debug = False` for production
     - Create `backend/app/extensions.py` with shared extension instances: `db` (Flask-SQLAlchemy), `migrate` (Flask-Migrate), `jwt` (Flask-JWT-Extended), `cors` (Flask-CORS)
     - Configure Flask-CORS in `create_app()` with `origins` read from `CORS_ORIGINS` (comma-separated list), applied to `/api/*`
     - Create `backend/app/exceptions.py` with `AppError(Exception)` holding `status_code: int` and `message: str`; register a single `@app.errorhandler(AppError)` in the factory that returns `{ "error": message }` with `status_code`
     - Register JWT loaders in the factory: `@jwt.unauthorized_loader`, `@jwt.invalid_token_loader`, and `@jwt.expired_token_loader` all return `401 { "error": "missing or invalid token" }`
     - Register `@app.errorhandler(ValidationError)` returning `400 { "error": "<first message>" }`, `@app.errorhandler(NotFound)` returning `404 { "error": "not found" }`, `@app.errorhandler(HTTPException)` returning `e.code { "error": e.description }`, and catch-all `@app.errorhandler(Exception)` returning `500 { "error": "internal server error" }` with no stack trace
-    - Create `backend/wsgi.py` as the Gunicorn entry point: `from app import create_app; app = create_app()`
-    - Create `backend/requirements.txt` listing: Flask, Flask-SQLAlchemy, Flask-Migrate, Flask-JWT-Extended, Flask-CORS, marshmallow, Werkzeug, psycopg2-binary, gunicorn, pytest, pytest-flask, python-dotenv
+    - Create `backend/wsgi.py` as the WSGI entry point that Vercel detects: `from app import create_app; app = create_app()`
+    - Create `backend/requirements.txt` listing: Flask, Flask-SQLAlchemy, Flask-Migrate, Flask-JWT-Extended, Flask-CORS, marshmallow, Werkzeug, psycopg2-binary, pytest, pytest-flask, python-dotenv
     - Create `backend/.env.example` listing all required env vars (`DATABASE_URL`, `TEST_DATABASE_URL`, `SECRET_KEY`, `JWT_SECRET_KEY`, `CORS_ORIGINS`, `FLASK_ENV`) with placeholder values and no real secrets
     - Create empty `backend/app/blueprints/` package directory tree (one `__init__.py` per blueprint folder: auth, boards, columns, cards, comments, notifications, analytics, users)
     - _Requirements: REQ-4.2, REQ-17.1–17.5, REQ-18.3, REQ-18.5, REQ-18.6, REQ-21.2, REQ-21.3, REQ-22.1_
@@ -46,12 +46,12 @@ This plan builds the RevoTask MVP in incremental layers: backend skeleton → he
     - Create `backend/tests/test_health.py` with tests: `GET /api/health` returns `200 { "data": { "status": "ok" } }`
     - _Requirements: REQ-1.1, REQ-1.2, REQ-1.3_
 
-- [ ] 3. Railway early deploy
-  - [ ] 3.1 Create Railway configuration and run initial migration
-    - Create `backend/Procfile` or `railway.toml` specifying `gunicorn wsgi:app` as the web process
-    - Document the one-time Railway setup steps as comments in `.env.example`: provision a PostgreSQL plugin, copy the `DATABASE_URL`, set `SECRET_KEY`, `JWT_SECRET_KEY`, `CORS_ORIGINS`, `FLASK_ENV=production`
-    - Run `flask db upgrade` in the Railway deploy pipeline so the initial schema is applied before the first request
-    - Verify `GET /api/health` returns `200` on the live Railway URL
+- [ ] 3. API deploy (Vercel + Neon)
+  - [ ] 3.1 Create the Vercel configuration and run the initial migration
+    - Create `backend/vercel.json` with a build command that runs `flask db upgrade`, and `backend/.python-version`; no `Procfile` is needed, because Vercel detects the Flask `app` exported by `backend/wsgi.py`
+    - Document the one-time setup steps as comments in `.env.example`: create a Neon project, copy its pooled connection string into `DATABASE_URL`, set `SECRET_KEY`, `JWT_SECRET_KEY`, `CORS_ORIGINS`, `FLASK_ENV=production` as Vercel environment variables
+    - Run `flask db upgrade` as the Vercel build command so the schema is applied before the new version serves its first request
+    - Verify `GET /api/health` returns `200` on the live API URL
     - _Requirements: REQ-1.1, REQ-18.6_
 
 - [ ] 4. Auth blueprint
@@ -386,13 +386,13 @@ This plan builds the RevoTask MVP in incremental layers: backend skeleton → he
 
 - [ ] 22. Vercel deploy
   - [ ] 22.1 Configure and deploy the frontend to Vercel
-    - Connect the `frontend/` directory to a Vercel project; set environment variables: `NEXT_PUBLIC_API_BASE_URL` (Railway public URL) and `API_BASE_URL` (same Railway URL, available to Server Components at build time)
-    - After the first Vercel deploy, add the Vercel production URL to `CORS_ORIGINS` on Railway and redeploy the API
+    - Connect the `frontend/` directory to a Vercel project; set environment variables: `NEXT_PUBLIC_API_BASE_URL` (the API's public Vercel URL) and `API_BASE_URL` (the same URL, read by Server Components)
+    - After the first Vercel deploy, add the web app's production URL to `CORS_ORIGINS` on the API's Vercel project and redeploy the API
     - Verify that the live Vercel URL loads the login page and that a browser login from the live site succeeds and reaches the dashboard
     - _Requirements: REQ-31.1–31.2_
 
   - [ ] 22.2 Verify the board-load performance target on production
-    - Seed one board with 200 cards on the Railway deployment (script or API calls with a test account)
+    - Seed one board with 200 cards on the live API (script or API calls with a test account)
     - Measure `GET /api/boards/<id>` at least 20 times and record the 95th percentile; it must be under 500 ms; record the result in the README
     - _Requirements: REQ-19.1_
 
@@ -424,7 +424,7 @@ This plan builds the RevoTask MVP in incremental layers: backend skeleton → he
     - _Requirements: REQ-23.5_
 
 - [ ] 24. Final checkpoint — Ensure all tests pass
-  - Run `pytest backend/tests/` (all backend tests) and the Playwright suite against the live Vercel + Railway URLs; resolve any failures.
+  - Run `pytest backend/tests/` (all backend tests) and the Playwright suite against the live web and API URLs; resolve any failures.
   - _Requirements: REQ-23.1–23.5_
 
 - [ ] 25. Deliverables
@@ -433,7 +433,7 @@ This plan builds the RevoTask MVP in incremental layers: backend skeleton → he
     - _Requirements: REQ-22.1_
 
   - [ ] 25.2 Verify the live API with Postman
-    - On the public Railway URL call `GET /api/health`, `POST /api/auth/register`, `POST /api/auth/login`, and at least one endpoint of each of the 8 blueprints; confirm every response uses the `{ "data": ... }` or `{ "error": "..." }` envelope; save a screenshot
+    - On the public API URL call `GET /api/health`, `POST /api/auth/register`, `POST /api/auth/login`, and at least one endpoint of each of the 8 blueprints; confirm every response uses the `{ "data": ... }` or `{ "error": "..." }` envelope; save a screenshot
     - _Requirements: REQ-1.1, REQ-17.1–17.2_
 
   - [ ] 25.3 Run the Playwright suite against the live URL and commit the report

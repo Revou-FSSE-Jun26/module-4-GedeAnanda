@@ -2,7 +2,7 @@
 
 | Field   | Value                                                                 |
 | ------- | --------------------------------------------------------------------- |
-| Version | 0.3 (draft)                                                           |
+| Version | 0.4                                                                   |
 | Date    | 2026-11-26                                                            |
 | Status  | Draft — input for Kiro spec generation (`requirements.md` → `design.md` → `tasks.md`) |
 | Scope   | Flask REST API + Next.js web app, both deployed publicly              |
@@ -15,7 +15,7 @@ RevoTask is a Trello-like task management web application. Users create **boards
 
 The product has two deployables:
 
-- **RevoTask API**: Flask REST API with PostgreSQL, deployed on Railway.
+- **RevoTask API**: Flask REST API with PostgreSQL, deployed on Vercel (Python runtime) with a Neon PostgreSQL database.
 - **RevoTask Web**: Next.js (App Router) frontend, deployed on Vercel.
 
 The project is built with a spec-driven, AI-assisted workflow. This brief feeds the specification phase. Every AI-generated artifact is reviewed against the steering guidelines before it is committed (see §12).
@@ -207,10 +207,10 @@ There is no logout endpoint.
 | Validation | Marshmallow | Request validation and response serialization |
 | CORS | Flask-CORS | Allow-list for the Vercel origin |
 | Config | python-dotenv | Environment variables from `.env` |
-| Database | PostgreSQL | Production on Railway; separate database for tests |
-| Server | Gunicorn | Production WSGI server |
+| Database | PostgreSQL | Production on Neon; separate database for tests |
+| Server | Vercel Functions (Python runtime) | Runs the Flask WSGI app exported by `backend/wsgi.py` |
 | Backend tests | pytest (`pytest -v`) | Unit and API tests per blueprint |
-| Hosting | Railway (API + PostgreSQL), Vercel (web) | Public deployments |
+| Hosting | Vercel (API and web, two projects), Neon (PostgreSQL) | Public deployments. Changed from Railway in v0.4 |
 
 ### AI tools (hybrid workflow)
 
@@ -270,7 +270,7 @@ Shared building blocks:
 
 ## 10. Success Criteria (Definition of Done)
 
-1. `GET /api/health` returns `200` on the public Railway URL. Register and login return JSON in the envelope, verified in Postman.
+1. `GET /api/health` returns `200` on the public API URL. Register and login return JSON in the envelope, verified in Postman.
 2. All 8 blueprints (auth, boards, columns, cards, comments, notifications, analytics, users) are reachable on the public URL, and every migration has been applied with `flask db upgrade`.
 3. On the live Vercel app, a user can: register; log in; create a board; add columns; create a card; drag it to another column and still see it there after a refresh; open the card; add and edit a comment; find a card through search; and see an unread count on the notification bell.
 4. `pytest -v` passes. The comment tests cover `201` success, `400` missing content, `401` unauthenticated and `403` not the owner.
@@ -304,9 +304,10 @@ Shared building blocks:
 
 | Risk | Mitigation |
 | ---- | ---------- |
-| Railway provides `DATABASE_URL` with the `postgres://` scheme, which SQLAlchemy rejects | Normalize it to `postgresql://` in config; require SSL in production |
-| CORS failures between the Vercel and Railway domains | `CORS_ORIGINS` env allow-list; deploy early and test from the live frontend |
-| Migrations not applied on deploy | Run `flask db upgrade` as Railway's pre-deploy or start step |
+| The host may provide `DATABASE_URL` with the `postgres://` scheme, which SQLAlchemy rejects | Normalize it in config; Neon's connection string already requires SSL |
+| CORS failures between the web and API domains | `CORS_ORIGINS` env allow-list; deploy early and test from the live frontend |
+| Migrations not applied on deploy | Run `flask db upgrade` as the API project's Vercel build command |
+| A serverless function is slow on its first request after idling (cold start), and Neon suspends an idle database | Measure the p95 on warm requests and report cold-start time separately; `pool_pre_ping` reconnects after a suspend |
 | Float precision runs out after many moves | Rebalance strategy (§5.12) |
 | Playwright native drag-and-drop is flaky | Use `locator.dragTo()`, wait for the `PATCH /position` response with `waitForResponse`, then assert on the DOM; never `waitForTimeout` |
 | AI-generated code violates the steering guidelines | Review every generated file against `/guidelines` before committing; log findings in the violation report |
@@ -390,3 +391,4 @@ These come from the assignment. Every item needs at least one acceptance criteri
 | 0.1 | 2026-11-26 | First draft, prepared with AI assistance (Claude Code) from the assignment text. Pending the author's review. |
 | 0.2 | 2026-11-26 | Added Appendix A (canonical endpoint catalog) and Appendix B (required frontend behaviors). Reason: the first Kiro `requirements.md` invented 5 endpoint paths and under-specified the frontend, because v0.1 did not list the assignment's exact routes or page behaviors. |
 | 0.3 | 2026-11-26 | Three gaps found while reviewing R2: (1) the password minimum is now 8 characters, enforced by both client and API, where before no number was given; (2) `GET /members` is readable by any member, because the assignee picker would otherwise be unusable for non-admins; (3) `NotificationBell` gets a list with click-to-mark-read, because the `/read` endpoint had no UI consumer. |
+| 0.4 | 2026-11-27 | Hosting changed from Railway (API + PostgreSQL) to Vercel (API) + Neon (PostgreSQL). Reason: the author's card was declined by both Railway and Render, so neither could be used; the mentor approved the alternative. No endpoint, model or behavior changed. See CHANGELOG CL-15. |

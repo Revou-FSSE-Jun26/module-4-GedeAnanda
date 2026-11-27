@@ -19,7 +19,7 @@ PSYCOPG2_SCHEME = "postgresql+psycopg2://"
 def normalize_database_url(url: str) -> str:
     """Return a URL that SQLAlchemy opens with the psycopg2 driver.
 
-    Railway issues ``postgres://`` URLs, which SQLAlchemy does not accept. A bare
+    Some hosts issue ``postgres://`` URLs, which SQLAlchemy does not accept. A bare
     ``postgresql://`` URL makes SQLAlchemy 2.1 look for psycopg 3, which is not
     installed, so the driver is named explicitly.
     """
@@ -39,6 +39,9 @@ class Config:
     TESTING = False
     SQLALCHEMY_TRACK_MODIFICATIONS = False
     JWT_ACCESS_TOKEN_EXPIRES = timedelta(hours=24)
+    # The hosted database closes idle connections (Neon suspends after a few idle
+    # minutes), so a pooled connection is tested before use and not kept for long.
+    SQLALCHEMY_ENGINE_OPTIONS = {"pool_pre_ping": True, "pool_recycle": 300}
 
     def __init__(self) -> None:
         self.SECRET_KEY = os.environ["SECRET_KEY"]
