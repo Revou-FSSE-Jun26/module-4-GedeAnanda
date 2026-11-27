@@ -16,13 +16,17 @@ Both run on Vercel in the Singapore region. The database is PostgreSQL on Neon, 
 | --- | --- |
 | ![Kanban board](docs/screenshots/03-kanban-board.png) | ![Card details](docs/screenshots/04-card-details.png) |
 
+| Dark theme | A card being dragged |
+| --- | --- |
+| ![Board in the dark theme](docs/screenshots/08-dark-board.png) | ![A card in mid-drag, with the target column and landing line marked](docs/screenshots/09-dragging.png) |
+
 | Dashboard | My tasks |
 | --- | --- |
 | ![Dashboard](docs/screenshots/02-dashboard.png) | ![My tasks](docs/screenshots/05-my-tasks.png) |
 
 | Login | Board on a 375 px phone |
 | --- | --- |
-| ![Login](docs/screenshots/01-login.png) | <img src="docs/screenshots/06-mobile-board.png" alt="Board on a phone" width="260"> |
+| ![Login](docs/screenshots/01-login.png) | <img src="docs/screenshots/06-mobile-board.png" alt="Board on a phone" width="200"> <img src="docs/screenshots/10-dark-mobile.png" alt="Board on a phone, dark theme" width="200"> |
 
 ## Features
 
