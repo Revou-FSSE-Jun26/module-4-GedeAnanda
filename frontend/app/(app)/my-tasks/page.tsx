@@ -3,6 +3,7 @@ import Link from "next/link";
 import { BaseBadge } from "@/components/shared/BaseBadge";
 import { EmptyState } from "@/components/shared/EmptyState";
 import { Icon } from "@/components/shared/Icon";
+import { TaskCheck } from "@/components/tasks/TaskCheck";
 import { MARKER_BG, markerFor } from "@/lib/color";
 import { formatDate, isOverdue } from "@/lib/format";
 import { serverGet } from "@/lib/session";
@@ -78,16 +79,9 @@ export default async function MyTasksPage() {
                       key={card.id}
                       className="flex flex-wrap items-center justify-between gap-x-4 gap-y-2 rounded-xl bg-card p-3 shadow-rest"
                     >
-                      <span className="flex min-w-0 items-center gap-2.5">
-                        <span
-                          aria-hidden="true"
-                          className={
-                            "inline-flex h-5 w-5 shrink-0 items-center justify-center rounded-full border-2 " +
-                            (card.completed_at ? "border-low bg-low-wash text-low" : "border-line")
-                          }
-                        >
-                          {card.completed_at && <Icon name="check" className="h-3 w-3" />}
-                        </span>
+                      <span className="flex min-w-0 items-center gap-3 pl-1">
+                        {/* Keyed by the server's state, so fresh data resets the box to the truth. */}
+                        <TaskCheck key={card.completed_at ?? "open"} card={card} />
                         <span
                           className={
                             "min-w-0 break-words font-medium " +

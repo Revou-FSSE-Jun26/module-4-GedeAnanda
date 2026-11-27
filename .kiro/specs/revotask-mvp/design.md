@@ -873,6 +873,14 @@ A card's labels are set through the card endpoints: `label_ids` on `CardSchema` 
 - `components/board/CardLabels.tsx` and `components/board/CardChecklist.tsx` are sections of `CardDetailModal`. Ticking a step is optimistic with a snapshot and rollback (guideline FE-07); adding and deleting wait for the API.
 - `lib/filters.ts` holds the filter logic as pure functions (`matchesFilters`, `visibleCardIds`, `assigneesOf`). `components/board/BoardFilters.tsx` renders four `SelectField`s. `KanbanBoard` combines the filters with the title search and passes one set of visible card IDs to `ColumnList`. No request is sent.
 
+## Completing a Task from My Tasks (REQ-38)
+
+Added after the MVP was accepted (CHANGELOG CL-18). Web only.
+
+A card is finished when it sits in a column marked `is_done`; the API sets `completed_at` when a card is moved there and clears it when the card leaves (REQ-9). So "tick a task" is a card move. `TaskCheck` (a Client Component inside the Server Component page) loads the card's board, asks `completionTarget(columns, done)` in `lib/tasks.ts` for the first column of the right kind and the order after its last card, and sends the existing `PATCH /api/cards/<id>/position`. The tick is optimistic with a rollback (guideline FE-07). After a successful move it calls `router.refresh()`, so the page's server data (summary line, "Done" mark) is fetched again. `TaskCheck` is keyed by `completed_at`, so fresh server data resets its local state.
+
+If the board has no column of the needed kind, nothing is sent and a toast says which kind is missing.
+
 ## Response Schemas
 
 > *Marshmallow dump-only schemas used to serialise API responses. These are used in the endpoint catalog below. The `password_hash` field is never included in any response schema.*
@@ -1363,3 +1371,7 @@ Runs against the live deployment (web and API on Vercel, database on Neon). Uses
 | REQ-35 | 8 | Checklist section in the modal | `frontend/components/board/CardChecklist.tsx` |
 | REQ-36 | 1–5 | Board filters | `frontend/lib/filters.ts`, `frontend/components/board/BoardFilters.tsx`, `frontend/components/board/KanbanBoard.tsx` |
 | REQ-37 | 1 | Fixed query count | `get_board` in `boards/service.py`, `list_cards` in `cards/service.py` |
+| REQ-38 | 1 | Checkbox per task with the title in its name | `frontend/components/tasks/TaskCheck.tsx`, used by `frontend/app/(app)/my-tasks/page.tsx` |
+| REQ-38 | 2–4 | Target column for ticking and unticking; missing column | `completionTarget` in `frontend/lib/tasks.ts` |
+| REQ-38 | 5–6 | Optimistic tick, rollback, reload | `frontend/components/tasks/TaskCheck.tsx` (`router.refresh()`) |
+| REQ-38 | 7 | No API change | uses `GET /api/boards/<id>` and `PATCH /api/cards/<id>/position` as they are |

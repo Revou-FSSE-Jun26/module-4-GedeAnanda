@@ -28,6 +28,7 @@ Raw AI output is committed **before** each refinement, so every entry can be ver
 | [CL-15](#cl-15) | brief, `requirements.md`, `design.md`, `tasks.md` | Hosting change | Claude Code | API hosting moved from Railway to Vercel + Neon after payment was declined; brief v0.4 |
 | [CL-16](#cl-16) | `requirements.md`, `design.md`, `tasks.md` | Scope addition | Claude Code | Added REQ-33 (visual design and interaction feedback) and task 26; one planned criterion was removed after testing showed it broke the Kanban test |
 | [CL-17](#cl-17) | brief, `requirements.md`, `design.md`, `tasks.md` | Scope addition | Claude Code | Added REQ-34 to REQ-37 (labels, checklist, board filters) and tasks 27 to 29; two new blueprints; brief v0.5 |
+| [CL-18](#cl-18) | `requirements.md`, `design.md`, `tasks.md` | Fix found by use | Claude Code | Added REQ-38: the circle in front of a task on My Tasks is now a working checkbox |
 
 ---
 
@@ -687,3 +688,35 @@ The accepted documents were copied to `/specs`. Next phase: steering guidelines,
 - **A design fault found by the end-to-end test.** The first version of the checklist waited for the API before a box showed its tick. Playwright's `check()` failed with "Clicking the checkbox did not change its state", which is also what a user on a slow connection would have felt. Ticking is now optimistic, with a snapshot and a rollback as guideline FE-07 describes, and two Jest tests cover the immediate tick and the rollback.
 - **Repeated runs.** Following CL-16, the whole Playwright suite was run five times in a row against a production build: 55 passes in 55 runs.
 - **Guidelines.** The association table got a UUID key and timestamps (DB-01, DB-02) instead of the usual two-column table. The cards service does not write to `card_labels` itself; it calls the labels service (BE-09).
+
+---
+
+## CL-18
+
+**Fix found by use: a task can be ticked off on My Tasks (REQ-38)**
+
+| Field | Value |
+| ----- | ----- |
+| Date | 2026-11-27 |
+| Artifact | `requirements.md`, `design.md`, `tasks.md` (both in `/specs` and in `.kiro/specs/revotask-mvp/`) |
+| Tool | Claude Code |
+| Trigger | The author used the live app and asked why the circle in front of a task could not be ticked |
+| Commits | before `12a15d1` → after: the commit that adds this entry |
+
+**Trigger.** The visual upgrade (CL-16) drew a round mark in front of every task on My Tasks: empty for an open card, green with a tick for a finished one. It was a picture of the card's state, with `aria-hidden`, and nothing happened when it was clicked. To a person it looks exactly like a checkbox. The author clicked it on the live site and it did nothing. No requirement asked for the mark, so no test looked at it, and every check passed.
+
+**Before → After.**
+
+| Document | Before | After |
+| -------- | ------ | ----- |
+| `requirements.md` | 37 requirements, 225 criteria. REQ-12 only lists the assigned cards | 38 requirements, 232 criteria. New REQ-38 (7 criteria): a real checkbox, where a ticked and an unticked card go, what happens when the board has no such column, optimistic update with rollback, reload after success, no API change |
+| `design.md` | Nothing on finishing a card outside the board | New section and 4 traceability rows |
+| `tasks.md` | 29 tasks | Task 30 |
+
+**Decision.** The mark could have been made to look less like a control. Making it work was chosen instead, because the action it suggests is one a user reasonably wants here. It needed no API change: a card is finished by being in a column marked as done, so ticking is the existing card move.
+
+**Review of the result.**
+
+- **A limit that is stated, not hidden.** A board with no column marked as done cannot finish a card, from My Tasks or anywhere else. The checkbox then unticks itself and a message says what is missing. The web app still has no control to mark an existing column as done after it was created; the checkbox only makes that older gap easier to run into.
+- **Tests.** 13 Jest tests (the target column for each case, the optimistic tick, both failure paths, and that the box works again after a failure) and 2 Playwright scenarios (tick, check on the board, reload, untick; a board without a done column). The whole Playwright suite was run four times against a production build: 52 passes in 52 runs.
+- **What this says about the earlier review.** CL-16 was checked with screenshots for how it looked. A screenshot cannot show that something that looks clickable is not.

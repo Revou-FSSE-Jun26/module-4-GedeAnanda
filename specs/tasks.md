@@ -510,6 +510,13 @@ This plan builds the RevoTask MVP in incremental layers: backend skeleton → he
   - [x] 29.3 Deploy the API (the build runs the migration), then the web app; run the Playwright suite against the live URLs
     - _Requirements: REQ-23.3–23.5_
 
+- [x] 30. Tick a task off on My Tasks (added after acceptance, CHANGELOG CL-18)
+  - [x] 30.1 `lib/tasks.ts` (`completionTarget`, a pure function) and `components/tasks/TaskCheck.tsx`; use it on `/my-tasks`
+    - _Requirements: REQ-38.1–38.7_
+
+  - [x] 30.2 Jest tests for `completionTarget` and `TaskCheck`; one Playwright scenario
+    - _Requirements: REQ-38.1–38.6_
+
 ## Notes
 
 - Tasks marked with `*` are optional and can be skipped for a faster MVP (there are no optional sub-tasks in this plan — all tests are core requirements per REQ-23).

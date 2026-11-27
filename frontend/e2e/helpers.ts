@@ -14,9 +14,9 @@ export function unique(prefix: string): string {
   return `${prefix}-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 8)}`;
 }
 
-async function api<T>(
+export async function api<T>(
   request: APIRequestContext,
-  method: "get" | "post",
+  method: "get" | "post" | "patch",
   path: string,
   options: { data?: unknown; token?: string } = {},
 ): Promise<T> {

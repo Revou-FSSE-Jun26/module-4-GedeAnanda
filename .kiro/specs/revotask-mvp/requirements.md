@@ -658,3 +658,21 @@ RevoTask is a Trello-like task management web application consisting of two depl
 #### Acceptance Criteria
 
 1. THE API SHALL load the labels and checklist items of the cards returned by `GET /api/boards/<id>` and `GET /api/cards` with a fixed number of queries that does not grow with the number of cards.
+
+---
+
+### REQ-38: Completing a Task from My Tasks
+
+**Reference:** F7, F4 (added after the MVP was accepted; see CHANGELOG CL-18)
+
+**User Story:** As a user, I want to tick a task off on the My Tasks page, so that I do not have to open its board to say it is finished.
+
+#### Acceptance Criteria
+
+1. THE `/my-tasks` page SHALL show a checkbox for every card, checked when the card's `completed_at` is set, with an accessible name that contains the card's title.
+2. WHEN a user checks the box of an open card, THE `/my-tasks` page SHALL move the card to the end of the first column of its board that is marked as done, by sending `PATCH /api/cards/<id>/position`.
+3. WHEN a user unchecks the box of a finished card, THE `/my-tasks` page SHALL move the card to the end of the first column of its board that is not marked as done, by sending `PATCH /api/cards/<id>/position`.
+4. IF the board has no column of the kind the card must move to, THEN THE `/my-tasks` page SHALL leave the card as it is, SHALL NOT send `PATCH /api/cards/<id>/position`, and SHALL tell the user which kind of column is missing.
+5. WHEN a user changes a checkbox, THE `/my-tasks` page SHALL show the new state at once, and IF the request fails, THEN it SHALL restore the previous state and report the error through `useErrorHandler`.
+6. WHEN the move succeeds, THE `/my-tasks` page SHALL reload its data, so that the summary line and the card's "Done" mark match the server.
+7. THE changes for this requirement SHALL NOT add, remove or change any API endpoint, request field or response field.
