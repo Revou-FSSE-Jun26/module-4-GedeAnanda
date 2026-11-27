@@ -67,17 +67,19 @@ export default function ProfilePage() {
   const { user, token } = useAuth();
 
   return (
-    <main className="mx-auto w-full max-w-md px-4 py-8">
-      <div className="flex items-center gap-4">
-        {user && <Avatar id={user.id} name={user.name} size="lg" decorative />}
-        <h1 className="font-display text-3xl font-semibold tracking-tight sm:text-4xl">Profile</h1>
+    <main className="mx-auto w-full max-w-6xl px-4 py-8">
+      <div className="max-w-md">
+        <div className="flex items-center gap-4">
+          {user && <Avatar id={user.id} name={user.name} size="lg" decorative />}
+          <h1 className="font-display text-3xl font-semibold tracking-tight sm:text-4xl">Profile</h1>
+        </div>
+        {user && token ? (
+          // Keyed by user so the inputs start from the loaded values.
+          <ProfileForm key={user.id} user={user} token={token} />
+        ) : (
+          <p className="mt-6 text-ink-soft">Loading your profile…</p>
+        )}
       </div>
-      {user && token ? (
-        // Keyed by user so the inputs start from the loaded values.
-        <ProfileForm key={user.id} user={user} token={token} />
-      ) : (
-        <p className="mt-6 text-ink-soft">Loading your profile…</p>
-      )}
     </main>
   );
 }

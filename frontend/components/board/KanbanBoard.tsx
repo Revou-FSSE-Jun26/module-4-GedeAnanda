@@ -145,7 +145,10 @@ export function KanbanBoard({ board }: { board: BoardDetail }) {
         // The only place in the app that scrolls sideways (guideline FE-08). `relative` keeps
         // absolutely positioned children (screen-reader-only text) inside the scroll area;
         // without it they widen the whole page.
-        <div className="relative flex flex-1 items-start gap-3 overflow-x-auto px-4 pb-6 pt-1">
+        // The strip runs edge to edge so columns can scroll under the screen's edges, but its
+        // padding grows on wide screens so the first column lines up with the page's 72rem
+        // content column (the title and the toolbar above it).
+        <div className="relative flex flex-1 items-start gap-3 overflow-x-auto px-[max(1rem,calc((100vw-72rem)/2+1rem))] pb-6 pt-1">
           <ColumnList
             columns={columns}
             matches={visible}
