@@ -97,8 +97,10 @@ export function KanbanBoard({ board }: { board: BoardDetail }) {
           </p>
         </div>
       ) : (
-        // The only place in the app that scrolls sideways (guideline FE-08).
-        <div className="flex flex-1 items-start gap-3 overflow-x-auto px-4 pb-6">
+        // The only place in the app that scrolls sideways (guideline FE-08). `relative` keeps
+        // absolutely positioned children (screen-reader-only text) inside the scroll area;
+        // without it they widen the whole page.
+        <div className="relative flex flex-1 items-start gap-3 overflow-x-auto px-4 pb-6">
           <ColumnList
             columns={columns}
             matches={matches}
