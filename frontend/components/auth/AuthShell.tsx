@@ -1,6 +1,8 @@
 import type { ReactNode } from "react";
 
 import { BaseBadge } from "@/components/shared/BaseBadge";
+import { Logo } from "@/components/shared/Logo";
+import { ThemeToggle } from "@/components/ThemeToggle";
 import type { Priority } from "@/types";
 
 interface AuthShellProps {
@@ -29,8 +31,11 @@ export function AuthShell({ title, lead, children }: AuthShellProps) {
   return (
     <main className="mx-auto grid w-full max-w-5xl flex-1 items-center gap-10 px-4 py-10 md:grid-cols-[minmax(0,26rem)_1fr] md:py-16">
       <section>
-        <p className="font-display text-lg font-semibold text-action">RevoTask</p>
-        <h1 className="mt-6 font-display text-4xl font-semibold leading-[1.05] tracking-tight">
+        <div className="flex items-center justify-between gap-3">
+          <Logo />
+          <ThemeToggle />
+        </div>
+        <h1 className="mt-8 font-display text-4xl font-semibold leading-[1.05] tracking-tight sm:text-5xl">
           {title}
         </h1>
         <p className="mt-3 max-w-prose text-ink-soft">{lead}</p>
@@ -39,11 +44,11 @@ export function AuthShell({ title, lead, children }: AuthShellProps) {
 
       <div aria-hidden="true" className="hidden items-start gap-3 md:flex md:translate-y-2 md:-rotate-2">
         {LANES.map((lane) => (
-          <div key={lane.name} className="w-44 shrink-0 rounded-xl bg-lane p-2.5">
+          <div key={lane.name} className="w-44 shrink-0 rounded-2xl bg-lane p-2.5 shadow-rest">
             <p className="px-1 pb-2 text-sm font-semibold">{lane.name}</p>
             <div className="flex flex-col gap-2">
               {lane.cards.map((card) => (
-                <div key={card.title} className="rounded-md bg-card p-2.5 shadow-sm">
+                <div key={card.title} className="rounded-lg bg-card p-2.5 shadow-rest">
                   <p className="mb-2 text-sm font-medium leading-snug">{card.title}</p>
                   <BaseBadge priority={card.priority} />
                 </div>

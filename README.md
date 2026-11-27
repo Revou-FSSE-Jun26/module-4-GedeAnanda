@@ -36,6 +36,9 @@ Both run on Vercel in the Singapore region. The database is PostgreSQL on Neon, 
 - **Card search.** Filter the cards on a board by title.
 - **Profile.** Update your name and email.
 - **Board analytics.** For admins: cards per column, cards completed this week, activity per member.
+- **Light and dark theme.** A switch in the header; the choice is remembered, and without a choice the app follows the operating system.
+- **Drag feedback.** A dragged card lifts, the column under it lights up, and a line shows where the card will land.
+- **Colours that identify.** Every board and every person has a colour worked out from their ID, the same on every page.
 - **Responsive.** Every page works on a 375 px screen. Cards can be moved without dragging through a "Move to column" field.
 
 Access rule: a user who is not a member of a board gets `404` for it, so the board's existence is not leaked. A member without the needed role gets `403`.
@@ -68,15 +71,16 @@ The API has 8 blueprints: `auth`, `users`, `boards`, `columns`, `cards`, `commen
 The project followed one chain: brief → requirements → design → tasks → code → tests. Every AI output was reviewed before it was committed.
 
 1. **Brief.** I wrote [`specs/project-brief.md`](specs/project-brief.md) as the input for the spec phase.
-2. **Specs with Kiro.** Kiro generated `requirements.md`, `design.md` and `tasks.md` from the brief. I reviewed each first version and recorded the findings in [`specs/reviews/`](specs/reviews/). Every change to the specs is logged in [`specs/CHANGELOG.md`](specs/CHANGELOG.md) with the text before and after (15 entries, CL-01 to CL-15).
+2. **Specs with Kiro.** Kiro generated `requirements.md`, `design.md` and `tasks.md` from the brief. I reviewed each first version and recorded the findings in [`specs/reviews/`](specs/reviews/). Every change to the specs is logged in [`specs/CHANGELOG.md`](specs/CHANGELOG.md) with the text before and after (16 entries, CL-01 to CL-16).
 3. **Steering guidelines.** [`guidelines/`](guidelines/) holds the rules for frontend, backend and database code. Each rule has a rationale and an example. [`guidelines/comparison/`](guidelines/comparison/) shows the same feature generated before and after the guidelines existed.
 4. **Code with Claude Code.** Kiro's free credits ran out after the spec phase, so the implementation was done with Claude Code, working from the same specs and guidelines, one task group at a time: auth, boards, columns, cards, then comments, notifications, users and analytics, then the frontend.
 5. **Review against the guidelines.** Generated code was checked against the guidelines and by tests. Six violations were found and fixed; each is recorded in [`guidelines/violation-report.md`](guidelines/violation-report.md) with the rule, the bad code and the fix. Examples: an N+1 query when loading a board (found only after the query-count test was made stricter), and a page that scrolled sideways on a phone.
 
-Two things did not go to plan, and both are logged:
+Three things did not go to plan, and all are logged:
 
 - **AI tool change.** The plan was Kiro for the whole project. It became Kiro for specs and Claude Code for code.
 - **Hosting change (CL-15).** The specs named Railway for the API. Railway and Render both rejected my payment card, so the API moved to Vercel's Python runtime with a Neon database. The mentor approved the change.
+- **A feature that was built and removed (CL-16).** After the MVP was live I added a visual upgrade as a new requirement (REQ-33). Its loading skeletons looked right in the browser but made the Kanban end-to-end test fail 4 times in 12 against a production build, so they were taken out again and the requirement was changed.
 
 ## Run locally
 
@@ -131,7 +135,7 @@ cd frontend
 npm test
 ```
 
-66 tests. `npm run lint` and `npm run typecheck` check style and types.
+87 tests. `npm run lint` and `npm run typecheck` check style and types.
 
 ### End-to-end tests (Playwright)
 

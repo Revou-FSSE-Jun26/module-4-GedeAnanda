@@ -3,6 +3,7 @@
 import { useState, type FormEvent } from "react";
 
 import { BaseButton } from "@/components/shared/BaseButton";
+import { Avatar } from "@/components/shared/Avatar";
 import { TextAreaField } from "@/components/shared/TextAreaField";
 import { useAuth } from "@/context/AuthContext";
 import { useErrorHandler } from "@/hooks/useErrorHandler";
@@ -78,9 +79,10 @@ export function CommentList({ comments, onUpdated, onDeleted }: CommentListProps
         const mine = user?.id === comment.author.id;
         const edited = wasEdited(comment.created_at, comment.updated_at);
         return (
-          <li key={comment.id} className="rounded-lg bg-board p-3">
-            <p className="text-sm">
-              <span className="font-semibold">{comment.author.name}</span>{" "}
+          <li key={comment.id} className="rounded-xl bg-board p-3">
+            <p className="flex flex-wrap items-center gap-x-2 gap-y-1 text-sm">
+              <Avatar id={comment.author.id} name={comment.author.name} size="sm" decorative />
+              <span className="font-semibold">{comment.author.name}</span>
               <span className="text-ink-soft">
                 on {formatDate(comment.created_at)}
                 {edited && ", edited"}

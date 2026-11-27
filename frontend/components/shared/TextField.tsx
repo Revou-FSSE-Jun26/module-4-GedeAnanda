@@ -27,7 +27,7 @@ export function TextField({ id, label, value, onChange, error, hint, ...props }:
         aria-invalid={error ? true : undefined}
         aria-describedby={describedBy}
         className={
-          "min-h-[44px] w-full rounded-lg border bg-card px-3 text-base text-ink " +
+          "min-h-[44px] w-full rounded-lg border bg-card transition-colors hover:border-ink-soft px-3 text-base text-ink " +
           "placeholder:text-ink-soft/70 " +
           (error ? "border-danger" : "border-line")
         }

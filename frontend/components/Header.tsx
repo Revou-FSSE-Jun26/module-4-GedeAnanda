@@ -4,7 +4,10 @@ import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 
 import { NotificationBell } from "@/components/notifications/NotificationBell";
+import { Avatar } from "@/components/shared/Avatar";
 import { BaseButton } from "@/components/shared/BaseButton";
+import { Logo } from "@/components/shared/Logo";
+import { ThemeToggle } from "@/components/ThemeToggle";
 import { useAuth } from "@/context/AuthContext";
 import { clearToken } from "@/lib/auth";
 
@@ -22,7 +25,7 @@ function isCurrent(pathname: string, href: string): boolean {
 export function Header() {
   const pathname = usePathname();
   const router = useRouter();
-  const { clearAuth } = useAuth();
+  const { user, clearAuth } = useAuth();
 
   // REQ-4.3 and 4.4: logout happens entirely in the browser.
   function logout() {
@@ -32,14 +35,20 @@ export function Header() {
   }
 
   return (
-    <header className="sticky top-0 z-30 border-b border-line bg-card">
-      <div className="mx-auto flex w-full max-w-6xl flex-wrap items-center gap-x-6 gap-y-1 px-4 py-2">
-        <Link href="/" className="font-display text-xl font-semibold text-action">
-          RevoTask
+    <header className="sticky top-0 z-30 border-b border-line bg-card/85 backdrop-blur-md">
+      <div className="mx-auto flex w-full max-w-6xl flex-wrap items-center gap-x-3 gap-y-1 px-4 py-2 sm:gap-x-6">
+        <Link href="/" className="rounded-lg">
+          <Logo />
         </Link>
 
-        <div className="ml-auto flex items-center gap-2 sm:order-last">
+        <div className="ml-auto flex items-center gap-1.5 sm:order-last sm:gap-2">
+          <ThemeToggle />
           <NotificationBell />
+          {user && (
+            <Link href="/profile" className="hidden rounded-full sm:inline-flex">
+              <Avatar id={user.id} name={user.name} />
+            </Link>
+          )}
           <BaseButton variant="secondary" onClick={logout}>
             Log out
           </BaseButton>
@@ -54,8 +63,8 @@ export function Header() {
                 href={link.href}
                 aria-current={current ? "page" : undefined}
                 className={
-                  "inline-flex min-h-[44px] items-center rounded-lg px-3 text-sm font-semibold " +
-                  (current ? "bg-board text-ink" : "text-ink-soft hover:text-ink")
+                  "inline-flex min-h-[44px] items-center rounded-lg px-3 text-sm font-semibold transition-colors " +
+                  (current ? "bg-action-wash text-action" : "text-ink-soft hover:bg-board hover:text-ink")
                 }
               >
                 {link.label}

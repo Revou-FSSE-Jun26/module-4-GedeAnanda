@@ -3,6 +3,7 @@
 import { useState, type FormEvent } from "react";
 
 import { BaseButton } from "@/components/shared/BaseButton";
+import { Icon } from "@/components/shared/Icon";
 import { BaseModal } from "@/components/shared/BaseModal";
 import { TextField } from "@/components/shared/TextField";
 import { useAuth } from "@/context/AuthContext";
@@ -56,7 +57,8 @@ export function AddColumnForm({ boardId, onCreated }: AddColumnFormProps) {
 
   return (
     <>
-      <BaseButton variant="secondary" onClick={() => setOpen(true)}>
+      <BaseButton onClick={() => setOpen(true)}>
+        <Icon name="plus" className="h-4 w-4" />
         Add column
       </BaseButton>
       <BaseModal open={open} title="Add a column" onClose={close}>

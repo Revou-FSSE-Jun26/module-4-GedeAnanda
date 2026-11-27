@@ -7,6 +7,7 @@ import { AnalyticsModal } from "@/components/board/AnalyticsModal";
 import { CardDetailModal } from "@/components/board/CardDetailModal";
 import { ColumnList } from "@/components/board/ColumnList";
 import { MembersModal } from "@/components/board/MembersModal";
+import { EmptyState } from "@/components/shared/EmptyState";
 import { TextField } from "@/components/shared/TextField";
 import { useAuth } from "@/context/AuthContext";
 import { useDragAndDrop } from "@/hooks/useDragAndDrop";
@@ -92,15 +93,16 @@ export function KanbanBoard({ board }: { board: BoardDetail }) {
 
       {columns.length === 0 ? (
         <div className="mx-auto w-full max-w-6xl px-4">
-          <p className="rounded-xl border-2 border-dashed border-line px-5 py-12 text-center text-ink-soft">
-            This board has no columns yet. Add one, for example “To Do”, to start placing cards.
-          </p>
+          <EmptyState title="This board has no columns yet">
+            Columns are the stages work moves through. Add the first one, for example “To Do”, with
+            “Add column”.
+          </EmptyState>
         </div>
       ) : (
         // The only place in the app that scrolls sideways (guideline FE-08). `relative` keeps
         // absolutely positioned children (screen-reader-only text) inside the scroll area;
         // without it they widen the whole page.
-        <div className="relative flex flex-1 items-start gap-3 overflow-x-auto px-4 pb-6">
+        <div className="relative flex flex-1 items-start gap-3 overflow-x-auto px-4 pb-6 pt-1">
           <ColumnList
             columns={columns}
             matches={matches}

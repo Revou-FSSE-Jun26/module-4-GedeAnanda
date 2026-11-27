@@ -2,40 +2,161 @@
 
 /*
  * RevoTask design tokens. A whiteboard and its markers: a cool, pale board,
- * white cards, ink-navy writing, one blue for actions, and three marker
- * colours that mean priority and nothing else.
+ * white cards, ink-navy writing, one blue for actions, three marker colours
+ * that mean priority and nothing else, and six marker colours that give each
+ * board and each person a colour of their own.
+ *
+ * The dark theme is the same room with the lights off: the board turns deep
+ * indigo and the writing turns pale, the marker colours stay recognisable.
  */
+:root {
+  color-scheme: light;
+  --board: #eef1f6;
+  --lane: #e1e6ef;
+  --card: #ffffff;
+  --ink: #1b2440;
+  --ink-soft: #55607a;
+  --line: #cbd3e1;
+  --action: #2f5bea;
+  --action-deep: #2147c4;
+  --on-action: #ffffff;
+  --action-wash: #e3eaff;
+  --danger: #c8322b;
+  --danger-deep: #a32620;
+  --on-danger: #ffffff;
+  --low: #2e7d5b;
+  --low-wash: #e2f1ea;
+  --medium: #96600f;
+  --medium-wash: #fbefd3;
+  --high: #b3261e;
+  --high-wash: #fbe4e2;
+  --shade: 27 36 64;
+}
+
+:root[data-theme="dark"] {
+  color-scheme: dark;
+  --board: #0f1526;
+  --lane: #182036;
+  --card: #222c49;
+  --ink: #e8ecf8;
+  --ink-soft: #a6b1cd;
+  --line: #3a4670;
+  --action: #8aa4ff;
+  --action-deep: #a9bcff;
+  --on-action: #0f1526;
+  --action-wash: #26345f;
+  --danger: #ff8f85;
+  --danger-deep: #ffaba3;
+  --on-danger: #2a0d0b;
+  --low: #7fd3aa;
+  --low-wash: #173528;
+  --medium: #f0c26a;
+  --medium-wash: #3b2e10;
+  --high: #ff9a90;
+  --high-wash: #45201e;
+  --shade: 0 0 0;
+}
+
+/* No choice made yet: follow the operating system (REQ-33.3). Same values as above. */
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme]) {
+    color-scheme: dark;
+    --board: #0f1526;
+    --lane: #182036;
+    --card: #222c49;
+    --ink: #e8ecf8;
+    --ink-soft: #a6b1cd;
+    --line: #3a4670;
+    --action: #8aa4ff;
+    --action-deep: #a9bcff;
+    --on-action: #0f1526;
+    --action-wash: #26345f;
+    --danger: #ff8f85;
+    --danger-deep: #ffaba3;
+    --on-danger: #2a0d0b;
+    --low: #7fd3aa;
+    --low-wash: #173528;
+    --medium: #f0c26a;
+    --medium-wash: #3b2e10;
+    --high: #ff9a90;
+    --high-wash: #45201e;
+    --shade: 0 0 0;
+  }
+}
+
 @theme inline {
-  --color-board: #eef1f6;
-  --color-lane: #e1e6ef;
-  --color-card: #ffffff;
-  --color-ink: #1b2440;
-  --color-ink-soft: #55607a;
-  --color-line: #cbd3e1;
-  --color-action: #2f5bea;
-  --color-action-deep: #2147c4;
-  --color-danger: #c8322b;
-  --color-danger-deep: #a32620;
-  --color-low: #2e7d5b;
-  --color-low-wash: #e2f1ea;
-  --color-medium: #96600f;
-  --color-medium-wash: #fbefd3;
-  --color-high: #b3261e;
-  --color-high-wash: #fbe4e2;
+  --color-board: var(--board);
+  --color-lane: var(--lane);
+  --color-card: var(--card);
+  --color-ink: var(--ink);
+  --color-ink-soft: var(--ink-soft);
+  --color-line: var(--line);
+  --color-action: var(--action);
+  --color-action-deep: var(--action-deep);
+  --color-on-action: var(--on-action);
+  --color-action-wash: var(--action-wash);
+  --color-danger: var(--danger);
+  --color-danger-deep: var(--danger-deep);
+  --color-on-danger: var(--on-danger);
+  --color-low: var(--low);
+  --color-low-wash: var(--low-wash);
+  --color-medium: var(--medium);
+  --color-medium-wash: var(--medium-wash);
+  --color-high: var(--high);
+  --color-high-wash: var(--high-wash);
+
+  /* Marker colours for boards and people. White text reads on all six, in both themes. */
+  --color-marker-cobalt: #2f5bea;
+  --color-marker-teal: #0b7d7d;
+  --color-marker-plum: #8a3fb8;
+  --color-marker-poppy: #cf3b30;
+  --color-marker-amber: #a86500;
+  --color-marker-moss: #3f7a22;
 
   --font-sans: var(--font-body);
   --font-display: var(--font-heading);
+
+  /* A card resting on the board, and a card picked up from it. */
+  --shadow-rest: 0 1px 2px rgb(var(--shade) / 0.1), 0 1px 1px rgb(var(--shade) / 0.06);
+  --shadow-lift: 0 14px 28px -8px rgb(var(--shade) / 0.32), 0 4px 8px rgb(var(--shade) / 0.14);
+
+  --animate-rise: rise 160ms cubic-bezier(0.2, 0.8, 0.2, 1);
+  --animate-fade: fade 140ms ease-out;
+
+  @keyframes rise {
+    from {
+      opacity: 0;
+      transform: translateY(10px) scale(0.985);
+    }
+    to {
+      opacity: 1;
+      transform: none;
+    }
+  }
+  @keyframes fade {
+    from {
+      opacity: 0;
+    }
+    to {
+      opacity: 1;
+    }
+  }
 }
 
 body {
-  background: var(--color-board);
-  color: var(--color-ink);
+  background: var(--board);
+  color: var(--ink);
 }
 
 /* One focus style for everything that can take the keyboard. */
 :focus-visible {
-  outline: 3px solid var(--color-action);
+  outline: 3px solid var(--action);
   outline-offset: 2px;
+}
+
+::selection {
+  background: var(--action);
+  color: var(--on-action);
 }
 
 @media (prefers-reduced-motion: reduce) {
@@ -43,6 +164,7 @@ body {
   *::before,
   *::after {
     animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
     transition-duration: 0.01ms !important;
   }
 }

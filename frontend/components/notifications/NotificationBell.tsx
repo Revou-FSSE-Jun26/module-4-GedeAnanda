@@ -4,6 +4,7 @@ import { useRouter } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
 
 import { BaseButton } from "@/components/shared/BaseButton";
+import { Icon } from "@/components/shared/Icon";
 import { useNotifications } from "@/hooks/useNotifications";
 import type { Notification } from "@/types";
 
@@ -59,14 +60,11 @@ export function NotificationBell() {
         onClick={() => setOpen((value) => !value)}
         className="relative px-0"
       >
-        <svg aria-hidden="true" viewBox="0 0 24 24" className="h-5 w-5" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-          <path d="M6 9a6 6 0 1 1 12 0c0 5 2 6 2 6H4s2-1 2-6" />
-          <path d="M10 19a2 2 0 0 0 4 0" />
-        </svg>
+        <Icon name="bell" />
         {unreadCount > 0 && (
           <span
             data-testid="unread-count"
-            className="absolute -right-1.5 -top-1.5 min-w-5 rounded-full bg-danger px-1 text-center text-xs font-bold leading-5 text-white"
+            className="absolute -right-1.5 -top-1.5 min-w-5 rounded-full bg-danger px-1 text-center text-xs font-bold leading-5 text-on-danger"
           >
             {unreadCount > 99 ? "99+" : unreadCount}
           </span>
@@ -78,7 +76,7 @@ export function NotificationBell() {
           id="notification-list"
           role="region"
           aria-label="Notifications"
-          className="fixed inset-x-4 top-16 z-40 max-h-[70dvh] overflow-y-auto rounded-xl border border-line bg-card p-2 shadow-xl sm:absolute sm:inset-x-auto sm:right-0 sm:top-auto sm:mt-2 sm:w-88"
+          className="fixed inset-x-4 top-16 z-40 max-h-[70dvh] overflow-y-auto animate-rise rounded-2xl border border-line bg-card p-2 shadow-lift sm:absolute sm:inset-x-auto sm:right-0 sm:top-auto sm:mt-2 sm:w-88"
         >
           {notifications.length === 0 ? (
             <p className="px-3 py-6 text-center text-sm text-ink-soft">

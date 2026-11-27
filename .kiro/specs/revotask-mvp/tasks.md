@@ -448,6 +448,28 @@ This plan builds the RevoTask MVP in incremental layers: backend skeleton → he
     - List at least 3 guideline violations found in AI-generated code; for each: the file, the guideline it breaks, and the fix applied
     - _Requirements: REQ-22.1–22.3_
 
+- [x] 26. Visual design upgrade (added after acceptance, CHANGELOG CL-16)
+  - [x] 26.1 Theme tokens, dark theme and theme switch
+    - Move the colour tokens in `app/globals.css` to CSS variables with a light and a dark set; add `lib/theme.ts` (the only reader and writer of the `revotask_theme` cookie in the browser) and `components/ThemeToggle.tsx`; the root layout reads the cookie and sets `data-theme` on `<html>`
+    - _Requirements: REQ-33.1–33.3, REQ-33.8, REQ-33.9_
+
+  - [x] 26.2 Avatar and identity colours
+    - Add `lib/color.ts` (`markerIndex(id)`, a stable hash to one of six marker colours) and `components/shared/Avatar.tsx`; use them for board tiles, the board header, card assignees, comment authors, board members and the profile page
+    - _Requirements: REQ-33.4, REQ-33.5_
+
+  - [x] 26.3 Drag feedback
+    - Extend `useDragAndDrop` with the current drop target (column and the card it will be placed before); style the lifted card, the target column and the insertion mark in `CardItem` and `ColumnList` without changing the optimistic move and rollback logic
+    - _Requirements: REQ-33.6, REQ-9.7, REQ-30.3_
+
+  - [x] 26.4 Empty states
+    - Add a shared `EmptyState` component and use it on the dashboard, on a board without columns and on My Tasks; the notification panel keeps its own short empty text
+    - Route-level `loading.tsx` skeletons were built and then removed: see CHANGELOG CL-16
+    - _Requirements: REQ-33.7_
+
+  - [x] 26.5 Tests
+    - Jest tests for `Avatar`, `lib/color`, `ThemeToggle` and the drop-target state of `useDragAndDrop`; all existing Jest and Playwright tests must still pass without being weakened; run the Playwright suite several times in a row against a production build to catch timing-dependent failures
+    - _Requirements: REQ-33.1–33.6, REQ-33.10, REQ-23.2–23.5_
+
 ## Notes
 
 - Tasks marked with `*` are optional and can be skipped for a faster MVP (there are no optional sub-tasks in this plan — all tests are core requirements per REQ-23).

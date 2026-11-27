@@ -3,6 +3,8 @@
 import { useEffect, useState, type FormEvent } from "react";
 
 import { BaseButton } from "@/components/shared/BaseButton";
+import { Avatar } from "@/components/shared/Avatar";
+import { Icon } from "@/components/shared/Icon";
 import { BaseModal } from "@/components/shared/BaseModal";
 import { SelectField } from "@/components/shared/SelectField";
 import { TextField } from "@/components/shared/TextField";
@@ -90,16 +92,25 @@ export function MembersModal({ boardId, role }: MembersModalProps) {
   return (
     <>
       <BaseButton variant="secondary" onClick={() => setOpen(true)}>
+        <Icon name="people" className="h-4 w-4" />
         Members
       </BaseButton>
       <BaseModal open={open} title="Board members" onClose={() => setOpen(false)}>
         <ul className="flex flex-col divide-y divide-line">
           {members.map((member) => (
-            <li key={member.user_id} className="flex flex-wrap items-center justify-between gap-2 py-2">
-              <span className="min-w-0">
-                <span className="block font-semibold">{member.name}</span>
-                <span className="block break-all text-sm text-ink-soft">
-                  {member.email}, {member.role}
+            <li key={member.user_id} className="flex flex-wrap items-center justify-between gap-2 py-3">
+              <span className="flex min-w-0 items-center gap-3">
+                <Avatar id={member.user_id} name={member.name} decorative />
+                <span className="min-w-0">
+                  <span className="flex flex-wrap items-center gap-2 font-semibold">
+                    {member.name}
+                    {member.role === "admin" && (
+                      <span className="rounded-full bg-action-wash px-2 py-0.5 text-xs font-semibold text-action">
+                        Admin
+                      </span>
+                    )}
+                  </span>
+                  <span className="block break-all text-sm text-ink-soft">{member.email}</span>
                 </span>
               </span>
               {isAdmin && member.user_id !== user?.id && (

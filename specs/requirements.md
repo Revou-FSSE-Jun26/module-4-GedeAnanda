@@ -567,3 +567,24 @@ RevoTask is a Trello-like task management web application consisting of two depl
 3. THE `/my-tasks` page SHALL use `BaseButton` for every button element and SHALL NOT introduce one-off button elements.
 4. THE `/profile` page SHALL use `BaseButton` for every button element and SHALL NOT introduce one-off button elements.
 5. THE `BaseModal` component SHALL be used as the wrapper for every form in the application, including the create-board form, the add-column form, the add-card form, and `CardDetailModal`.
+
+---
+
+### REQ-33: Visual Design and Interaction Feedback
+
+**Reference:** NFR-3, NFR-7 (added after the MVP was accepted; see CHANGELOG CL-16)
+
+**User Story:** As a user, I want the app to look finished and to show me what is happening while I work, so that it is pleasant to use and I never have to guess its state.
+
+#### Acceptance Criteria
+
+1. THE web app SHALL offer a light theme and a dark theme, and the header SHALL contain a control that switches between them and whose accessible name states the theme it switches to.
+2. WHEN a user chooses a theme, THE web app SHALL store the choice in the `revotask_theme` cookie and SHALL apply it in the server-rendered HTML of later requests, so that the page does not first appear in the other theme.
+3. WHILE no theme has been chosen, THE web app SHALL follow the operating system's `prefers-color-scheme` setting.
+4. WHERE a person is shown as an avatar, THE `Avatar` component SHALL show the initials of the person's name on a colour derived only from the person's ID, and the person's name SHALL remain available as visible text or as the avatar's accessible name.
+5. THE web app SHALL give each board an identity colour derived only from the board's ID, and SHALL use the same colour for that board on the `/` page and on the `/boards/[id]` page.
+6. WHILE a card is being dragged, THE `/boards/[id]` page SHALL show the dragged card as lifted, SHALL mark the column the pointer is over, and SHALL mark the position where the card will be placed; WHEN the drag ends, all three marks SHALL be removed.
+7. WHEN a list has no items (no boards, no columns, no assigned cards, no notifications), THE web app SHALL show an empty state that says what is missing and how the first item gets there.
+8. THE web app SHALL keep a contrast ratio of at least 4.5:1 between body text and its background in both themes.
+9. WHILE the operating system's `prefers-reduced-motion` setting is on, THE web app SHALL NOT play transitions or animations.
+10. THE changes for this requirement SHALL NOT add, remove or change any API endpoint, request field or response field.

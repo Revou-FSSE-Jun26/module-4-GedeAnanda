@@ -3,6 +3,7 @@
 import { useState, type FormEvent } from "react";
 
 import { BaseButton } from "@/components/shared/BaseButton";
+import { Icon } from "@/components/shared/Icon";
 import { BaseModal } from "@/components/shared/BaseModal";
 import { SelectField } from "@/components/shared/SelectField";
 import { TextField } from "@/components/shared/TextField";
@@ -67,8 +68,9 @@ export function AddCardForm({ column, onCreated }: AddCardFormProps) {
         variant="secondary"
         onClick={() => setOpen(true)}
         aria-label={`Add card to ${column.name}`}
-        className="w-full border-dashed bg-transparent"
+        className="w-full border-dashed bg-transparent! text-ink-soft hover:border-action hover:text-action"
       >
+        <Icon name="plus" className="h-4 w-4" />
         Add card
       </BaseButton>
       <BaseModal open={open} title={`Add a card to ${column.name}`} onClose={close}>

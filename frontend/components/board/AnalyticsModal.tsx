@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 
 import { BaseButton } from "@/components/shared/BaseButton";
+import { Icon } from "@/components/shared/Icon";
 import { BaseModal } from "@/components/shared/BaseModal";
 import { useAuth } from "@/context/AuthContext";
 import { useErrorHandler } from "@/hooks/useErrorHandler";
@@ -33,6 +34,7 @@ export function AnalyticsModal({ boardId }: { boardId: string }) {
   return (
     <>
       <BaseButton variant="secondary" onClick={() => setOpen(true)}>
+        <Icon name="chart" className="h-4 w-4" />
         Analytics
       </BaseButton>
       <BaseModal open={open} title="Board analytics" onClose={() => setOpen(false)}>

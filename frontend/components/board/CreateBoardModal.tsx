@@ -4,6 +4,7 @@ import { useRouter } from "next/navigation";
 import { useState, type FormEvent } from "react";
 
 import { BaseButton } from "@/components/shared/BaseButton";
+import { Icon } from "@/components/shared/Icon";
 import { BaseModal } from "@/components/shared/BaseModal";
 import { TextField } from "@/components/shared/TextField";
 import { useAuth } from "@/context/AuthContext";
@@ -49,7 +50,10 @@ export function CreateBoardModal() {
 
   return (
     <>
-      <BaseButton onClick={() => setOpen(true)}>New board</BaseButton>
+      <BaseButton onClick={() => setOpen(true)}>
+        <Icon name="plus" className="h-4 w-4" />
+        New board
+      </BaseButton>
       <BaseModal open={open} title="Create a board" onClose={close}>
         <form onSubmit={onSubmit} noValidate className="flex flex-col gap-4">
           <TextField

@@ -7,9 +7,9 @@ interface BaseButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {
 }
 
 const VARIANT_CLASSES: Record<ButtonVariant, string> = {
-  primary: "bg-action text-white hover:bg-action-deep",
-  secondary: "border border-line bg-card text-ink hover:border-ink-soft",
-  destructive: "bg-danger text-white hover:bg-danger-deep",
+  primary: "bg-action text-on-action shadow-rest hover:bg-action-deep",
+  secondary: "border border-line bg-card text-ink hover:border-ink-soft hover:bg-board",
+  destructive: "bg-danger text-on-danger shadow-rest hover:bg-danger-deep",
 };
 
 /**
@@ -28,7 +28,7 @@ export function BaseButton({
       data-variant={variant}
       className={
         "inline-flex min-h-[44px] min-w-[44px] items-center justify-center gap-2 rounded-lg " +
-        "px-4 text-sm font-semibold transition-colors " +
+        "px-4 text-sm font-semibold transition-[background-color,border-color,transform] duration-150 active:scale-[0.97] " +
         "disabled:cursor-not-allowed disabled:opacity-55 " +
         `${VARIANT_CLASSES[variant]} ${className}`
       }

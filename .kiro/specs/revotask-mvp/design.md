@@ -810,6 +810,22 @@ Notification creation is handled inside the relevant service functions (`cards/s
 
 ---
 
+## Visual Design System (REQ-33)
+
+Added after the MVP was accepted (CHANGELOG CL-16). It changes how the web app looks and reacts; it adds no endpoint and no field.
+
+**Tokens.** `app/globals.css` holds every colour as a CSS variable in two sets, light and dark, and maps them to Tailwind names with `@theme inline` (`bg-board`, `text-ink`, `bg-action`, `text-on-action`, ...). Components use only these names, so a component is written once and works in both themes. `on-action` and `on-danger` exist because the action colour is dark blue in the light theme (white text) and pale blue in the dark theme (dark text).
+
+**Theme choice.** The choice lives in the `revotask_theme` cookie. The root layout (a Server Component) reads it and sets `data-theme` on `<html>`, so the first paint is already right. Without a cookie no attribute is set and a `prefers-color-scheme` media query picks the set. `lib/theme.ts` is the only browser code that touches the cookie and the attribute; `components/ThemeToggle.tsx` reads the current theme with `useSyncExternalStore`.
+
+**Identity colours.** `lib/color.ts` hashes an ID (FNV-1a) to one of six marker colours. Boards use it for the dashboard tile and the board header; `components/shared/Avatar.tsx` uses it for a person. Nothing is stored, so the API is untouched and every viewer sees the same colour.
+
+**Drag feedback.** `useDragAndDrop` also returns `dropTarget` (`{ columnId, beforeCardId }`), updated from `dragover` and cleared on `drop` and `dragend`. `CardItem` shows the lifted card and an insertion line above the card that would follow it; `ColumnList` highlights the target column and shows the line at the end of a column. The line is drawn outside the card's box, so the layout does not shift under the pointer. The move itself (optimistic update, request, rollback) is unchanged.
+
+**Empty states.** `components/shared/EmptyState.tsx` is used by the dashboard, a board without columns and My Tasks.
+
+**Not included: loading skeletons.** Route-level `loading.tsx` files were built and removed. They make Next.js stream the page, and while the streamed content is being put in place the board exists twice in the DOM for a moment, once hidden. The Kanban end-to-end test then failed 4 times out of 12 against a production build with a strict-mode error. Without them the suite passed 60 times out of 60.
+
 ## Response Schemas
 
 > *Marshmallow dump-only schemas used to serialise API responses. These are used in the endpoint catalog below. The `password_hash` field is never included in any response schema.*
@@ -1281,3 +1297,11 @@ Runs against the live deployment (web and API on Vercel, database on Neon). Uses
 | REQ-32 | 3 | /my-tasks uses BaseButton | `frontend/app/(app)/my-tasks/page.tsx` |
 | REQ-32 | 4 | /profile uses BaseButton | `frontend/app/(app)/profile/page.tsx` |
 | REQ-32 | 5 | BaseModal wraps all forms | `frontend/components/shared/BaseModal.tsx` used by `CreateBoardModal.tsx`, `AddColumnForm.tsx`, `AddCardForm.tsx`, `CardDetailModal.tsx` |
+| REQ-33 | 1–3 | Light and dark theme, cookie, OS fallback | `frontend/app/globals.css`, `frontend/app/layout.tsx`, `frontend/lib/theme.ts`, `frontend/components/ThemeToggle.tsx` |
+| REQ-33 | 4 | Avatar with initials and ID-derived colour | `frontend/components/shared/Avatar.tsx`, `frontend/lib/color.ts` |
+| REQ-33 | 5 | Board identity colour | `frontend/lib/color.ts` used by `frontend/app/(app)/page.tsx` and `frontend/app/(app)/boards/[id]/page.tsx` |
+| REQ-33 | 6 | Drag feedback | `frontend/hooks/useDragAndDrop.ts` (`dropTarget`), `frontend/components/board/CardItem.tsx`, `frontend/components/board/ColumnList.tsx` |
+| REQ-33 | 7 | Empty states | `frontend/components/shared/EmptyState.tsx` |
+| REQ-33 | 8 | Contrast in both themes | token values in `frontend/app/globals.css` |
+| REQ-33 | 9 | Reduced motion | `@media (prefers-reduced-motion: reduce)` in `frontend/app/globals.css` |
+| REQ-33 | 10 | No API change | no file under `backend/` changed |

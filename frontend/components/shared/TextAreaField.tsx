@@ -35,7 +35,7 @@ export function TextAreaField({
         aria-invalid={error ? true : undefined}
         aria-describedby={error ? `${id}-error` : undefined}
         className={
-          "w-full rounded-lg border bg-card px-3 py-2 text-base text-ink " +
+          "w-full rounded-lg border bg-card transition-colors hover:border-ink-soft px-3 py-2 text-base text-ink " +
           (error ? "border-danger" : "border-line")
         }
         {...props}

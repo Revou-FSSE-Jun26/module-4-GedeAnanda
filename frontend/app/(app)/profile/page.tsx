@@ -2,6 +2,7 @@
 
 import { useState, type FormEvent } from "react";
 
+import { Avatar } from "@/components/shared/Avatar";
 import { BaseButton } from "@/components/shared/BaseButton";
 import { TextField } from "@/components/shared/TextField";
 import { useAuth } from "@/context/AuthContext";
@@ -67,7 +68,10 @@ export default function ProfilePage() {
 
   return (
     <main className="mx-auto w-full max-w-md px-4 py-8">
-      <h1 className="font-display text-3xl font-semibold tracking-tight">Profile</h1>
+      <div className="flex items-center gap-4">
+        {user && <Avatar id={user.id} name={user.name} size="lg" decorative />}
+        <h1 className="font-display text-3xl font-semibold tracking-tight sm:text-4xl">Profile</h1>
+      </div>
       {user && token ? (
         // Keyed by user so the inputs start from the loaded values.
         <ProfileForm key={user.id} user={user} token={token} />

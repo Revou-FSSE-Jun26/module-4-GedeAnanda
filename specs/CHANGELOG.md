@@ -26,6 +26,7 @@ Raw AI output is committed **before** each refinement, so every entry can be ver
 | [CL-13](#cl-13) | `tasks.md` | TR1 | Claude Code | Removed 2 invented behaviors, fixed a build-breaking module, the test database and the CORS setup |
 | [CL-14](#cl-14) | `tasks.md` | TR2 | Claude Code | Added test tooling setup, guideline and deliverable tasks, a performance check; all 187 criteria now referenced; tasks accepted |
 | [CL-15](#cl-15) | brief, `requirements.md`, `design.md`, `tasks.md` | Hosting change | Claude Code | API hosting moved from Railway to Vercel + Neon after payment was declined; brief v0.4 |
+| [CL-16](#cl-16) | `requirements.md`, `design.md`, `tasks.md` | Scope addition | Claude Code | Added REQ-33 (visual design and interaction feedback) and task 26; one planned criterion was removed after testing showed it broke the Kanban test |
 
 ---
 
@@ -618,3 +619,35 @@ The accepted documents were copied to `/specs`. Next phase: steering guidelines,
 - **One consequence for a non-functional target.** REQ-19.1 (board load under 500 ms at the 95th percentile) was written with an always-on server in mind. A serverless function has a cold start after idling. The requirement is kept as written; the measurement in the README reports warm requests against the target and states the cold-start time separately instead of hiding it.
 - **Order of work also changed.** The plan called for an *early* API deploy, right after the health endpoint. In practice the deploy happened after all code was written, because the hosting question was open. The risk that plan was guarding against (finding deploy problems late) was therefore accepted, not avoided.
 
+---
+
+## CL-16
+
+**Scope addition: visual design and interaction feedback (REQ-33)**
+
+| Field | Value |
+| ----- | ----- |
+| Date | 2026-11-27 |
+| Artifact | `requirements.md`, `design.md`, `tasks.md` (both in `/specs` and in `.kiro/specs/revotask-mvp/`) |
+| Tool | Claude Code |
+| Trigger | A decision by the author after the MVP was live, not a review finding |
+| Commits | before `517064d` → after: the commit that adds this entry |
+
+**Trigger.** With every acceptance criterion met and the app deployed, the author asked for the interface to be raised to the level of comparable products. The specification is the source of the code in this project, so the change was written as a requirement first and coded second.
+
+**Before → After.**
+
+| Document | Before | After |
+| -------- | ------ | ----- |
+| `requirements.md` | 32 requirements, 187 criteria | 33 requirements, 197 criteria. New REQ-33: light and dark theme with a cookie and an OS fallback, avatars, a colour per board, drag feedback, empty states, contrast, reduced motion, and "no API change" |
+| `design.md` | No section on visual design; colours were named only in the frontend guideline | New section "Visual Design System (REQ-33)" and 8 traceability rows |
+| `tasks.md` | 25 tasks | Task 26 with 5 sub-tasks |
+
+**What did not change.** No endpoint, model, status code or existing criterion. No file under `backend/` was touched, which REQ-33.10 states as a requirement so that it can be checked.
+
+**Review of the result.**
+
+- **One criterion was written, built, and then removed.** The first version of REQ-33 had a criterion for loading skeletons (`loading.tsx` on `/`, `/boards/[id]` and `/my-tasks`). The code worked when looked at in the browser. The Kanban end-to-end test then failed on step 8 with a strict-mode error: the card was found twice in the "Done" column. Cause: a `loading.tsx` file makes Next.js stream the page, and while the streamed content is being moved into place the board is in the DOM twice, once inside a hidden element. Measured against a production build: 4 failures in 12 runs with the skeletons, 0 in 60 runs of the whole suite without them. The skeletons were removed, the criterion was deleted, and the later criteria were renumbered. The alternative, loosening the test's selector until it passed, was rejected: the test was right that the page held two copies.
+- **How it was caught.** A single run of the suite had passed. The failure showed only when the test was repeated (`--repeat-each`) and only some of the time. Task 26.5 now says to repeat the suite against a production build.
+- **Checked by looking, not only by tests.** Drag feedback is visual, and no test asserts on it beyond the hook's state. It was checked in screenshots taken during a drag, in both themes: the lifted card, the ring on the target column and the insertion line all show.
+- **Existing tests.** No existing test was changed. `jest.setup.ts` gained a `matchMedia` stand-in, because jsdom does not have one and the theme code asks it for the OS setting. 21 Jest tests were added (87 in total).

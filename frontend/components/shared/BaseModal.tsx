@@ -3,6 +3,7 @@
 import { useEffect, useId, useRef, type KeyboardEvent, type ReactNode } from "react";
 
 import { BaseButton } from "@/components/shared/BaseButton";
+import { Icon } from "@/components/shared/Icon";
 
 interface BaseModalProps {
   open: boolean;
@@ -62,7 +63,7 @@ export function BaseModal({ open, title, onClose, children }: BaseModalProps) {
 
   return (
     <div
-      className="fixed inset-0 z-50 flex items-end justify-center bg-ink/55 p-0 sm:items-center sm:p-4"
+      className="fixed inset-0 z-50 flex animate-fade items-end justify-center bg-[rgb(var(--shade)/0.55)] p-0 backdrop-blur-[2px] sm:items-center sm:p-4"
       onMouseDown={(event) => {
         if (event.target === event.currentTarget) onClose();
       }}
@@ -74,14 +75,14 @@ export function BaseModal({ open, title, onClose, children }: BaseModalProps) {
         aria-labelledby={titleId}
         tabIndex={-1}
         onKeyDown={onKeyDown}
-        className="max-h-[92dvh] w-full overflow-y-auto rounded-t-2xl bg-card p-5 shadow-xl outline-none sm:max-w-lg sm:rounded-2xl sm:p-6"
+        className="max-h-[92dvh] w-full animate-rise overflow-y-auto rounded-t-3xl bg-card p-5 shadow-lift outline-none sm:max-w-lg sm:rounded-2xl sm:p-6"
       >
         <div className="mb-4 flex items-start justify-between gap-3">
           <h2 id={titleId} className="font-display text-xl font-semibold leading-tight">
             {title}
           </h2>
           <BaseButton variant="secondary" onClick={onClose} aria-label="Close" className="-mr-1 -mt-1 px-0">
-            <span aria-hidden="true">✕</span>
+            <Icon name="close" />
           </BaseButton>
         </div>
         {children}
