@@ -1,12 +1,14 @@
 import {
+  applyColumnUpdate,
   applyMoveResult,
   orderForIndex,
   placeCard,
   removeCard,
+  removeColumn,
   sortColumns,
   upsertCard,
 } from "@/lib/board";
-import type { Card, ColumnWithCards } from "@/types";
+import type { Card, Column, ColumnWithCards } from "@/types";
 
 function card(id: string, column_id: string, order: number): Card {
   return {
@@ -137,5 +139,74 @@ describe("board state helpers", () => {
       ["b", 3072],
     ]);
     expect(next[1].cards[0].order).toBe(1024);
+  });
+});
+
+// REQ-39
+describe("applyColumnUpdate and removeColumn", () => {
+  const NOW = new Date("2026-11-27T10:00:00Z");
+  const earlier = "2026-11-20T09:00:00.000Z";
+
+  function boardWith(cards: Partial<Card>[], is_done = false): ColumnWithCards[] {
+    return [
+      {
+        id: "col",
+        board_id: "board",
+        name: "Makan",
+        order: 1024,
+        is_done,
+        cards: cards.map((change, index) => ({ id: `c${index}`, completed_at: null, ...change }) as Card),
+      },
+      { id: "other", board_id: "board", name: "Other", order: 2048, is_done: false, cards: [{ id: "x", completed_at: null } as Card] },
+    ];
+  }
+
+  const updated = (changes: Partial<Column>): Column => ({
+    id: "col",
+    board_id: "board",
+    name: "Makan",
+    order: 1024,
+    is_done: false,
+    ...changes,
+  });
+
+  it("renames the column and keeps its cards as they are", () => {
+    const before = boardWith([{}]);
+
+    const after = applyColumnUpdate(before, updated({ name: "Dapur" }), NOW);
+
+    expect(after[0].name).toBe("Dapur");
+    expect(after[0].cards).toBe(before[0].cards);
+  });
+
+  it("finishes the open cards of a column that becomes done, and keeps earlier finish times", () => {
+    const before = boardWith([{}, { completed_at: earlier }]);
+
+    const after = applyColumnUpdate(before, updated({ is_done: true }), NOW);
+
+    expect(after[0].is_done).toBe(true);
+    expect(after[0].cards.map((item) => item.completed_at)).toEqual([NOW.toISOString(), earlier]);
+  });
+
+  it("reopens the cards of a column that stops being done", () => {
+    const before = boardWith([{ completed_at: earlier }], true);
+
+    const after = applyColumnUpdate(before, updated({ is_done: false }), NOW);
+
+    expect(after[0].cards[0].completed_at).toBeNull();
+  });
+
+  it("leaves every other column untouched", () => {
+    const before = boardWith([{}]);
+
+    const after = applyColumnUpdate(before, updated({ is_done: true }), NOW);
+
+    expect(after[1]).toBe(before[1]);
+  });
+
+  it("removes a column together with its cards", () => {
+    const after = removeColumn(boardWith([{}, {}]), "col");
+
+    expect(after.map((column) => column.id)).toEqual(["other"]);
   });
 });

@@ -2,7 +2,7 @@
  * Pure helpers for the board's local state: where a dropped card goes and how
  * the columns look afterwards. No React and no network, so they are easy to test.
  */
-import type { Card, CardMoveResult, ColumnWithCards, OrderEntry } from "@/types";
+import type { Card, CardMoveResult, Column, ColumnWithCards, OrderEntry } from "@/types";
 
 export const ORDER_STEP = 1024;
 
@@ -91,4 +91,32 @@ export function applyMoveResult(
       ? { ...column, cards: applyOrders(column.cards, result.column_orders) }
       : column,
   );
+}
+
+/**
+ * Put a changed column on the board (REQ-39.2). When its "finished" setting
+ * changed, the API has also finished or reopened the column's cards
+ * (REQ-39.6, REQ-39.7); do the same to the copies on the page.
+ */
+export function applyColumnUpdate(
+  columns: ColumnWithCards[],
+  updated: Column,
+  now: Date = new Date(),
+): ColumnWithCards[] {
+  return columns.map((column) => {
+    if (column.id !== updated.id) return column;
+    const doneChanged = column.is_done !== updated.is_done;
+    const cards = doneChanged
+      ? column.cards.map((card) => ({
+          ...card,
+          completed_at: updated.is_done ? (card.completed_at ?? now.toISOString()) : null,
+        }))
+      : column.cards;
+    return { ...column, ...updated, cards };
+  });
+}
+
+/** Take a deleted column, and the cards in it, off the board. */
+export function removeColumn(columns: ColumnWithCards[], columnId: string): ColumnWithCards[] {
+  return columns.filter((column) => column.id !== columnId);
 }

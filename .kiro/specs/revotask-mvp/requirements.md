@@ -676,3 +676,22 @@ RevoTask is a Trello-like task management web application consisting of two depl
 5. WHEN a user changes a checkbox, THE `/my-tasks` page SHALL show the new state at once, and IF the request fails, THEN it SHALL restore the previous state and report the error through `useErrorHandler`.
 6. WHEN the move succeeds, THE `/my-tasks` page SHALL reload its data, so that the summary line and the card's "Done" mark match the server.
 7. THE changes for this requirement SHALL NOT add, remove or change any API endpoint, request field or response field.
+
+---
+
+### REQ-39: Editing a Column on the Board
+
+**Reference:** F3 (added after the MVP was accepted; see CHANGELOG CL-19)
+
+**User Story:** As a Member or Admin, I want to rename a column, mark it as the place for finished cards, or delete it, from the board itself, so that I can fix a board without starting over.
+
+#### Acceptance Criteria
+
+1. THE `/boards/[id]` page SHALL offer, on every column, a control named "Edit column <name>" that opens an edit form inside `BaseModal`.
+2. WHEN a user saves the edit form with a changed name, a changed "finished" setting or both, THE `/boards/[id]` page SHALL send `PATCH /api/columns/<id>` with only the changed fields and SHALL show the result on the board without a reload.
+3. IF the name is empty after trimming, THEN the edit form SHALL show a message next to the field and SHALL NOT send a request.
+4. WHERE the current user is an admin of the board, the edit form SHALL offer to delete the column, SHALL state how many cards will be deleted with it, and SHALL send `DELETE /api/columns/<id>` only after the user confirms.
+5. WHERE the current user is not an admin of the board, the edit form SHALL NOT show the delete control.
+6. WHEN `PATCH /api/columns/<id>` changes `is_done` from `false` to `true`, THE API SHALL set `completed_at` to the current UTC timestamp on every non-deleted card in that column whose `completed_at` is `null`, in the same transaction.
+7. WHEN `PATCH /api/columns/<id>` changes `is_done` from `true` to `false`, THE API SHALL clear `completed_at` to `null` on every non-deleted card in that column, in the same transaction.
+8. WHEN `PATCH /api/columns/<id>` does not change `is_done`, THE API SHALL NOT change the `completed_at` of any card.

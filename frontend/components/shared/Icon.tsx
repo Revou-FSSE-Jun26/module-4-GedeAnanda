@@ -8,6 +8,7 @@ export type IconName =
   | "close"
   | "filter"
   | "moon"
+  | "more"
   | "people"
   | "plus"
   | "search"
@@ -30,6 +31,13 @@ const PATHS: Record<IconName, ReactNode> = {
   check: <path d="m5 12.5 4.5 4.5L19 7" />,
   close: <path d="M6 6l12 12M18 6 6 18" />,
   filter: <path d="M4 6h16M7 12h10M10 18h4" />,
+  more: (
+    <>
+      <circle cx="5" cy="12" r="1.4" fill="currentColor" />
+      <circle cx="12" cy="12" r="1.4" fill="currentColor" />
+      <circle cx="19" cy="12" r="1.4" fill="currentColor" />
+    </>
+  ),
   moon: <path d="M20 14.5A8 8 0 0 1 9.5 4a7 7 0 1 0 10.5 10.5Z" />,
   people: (
     <>

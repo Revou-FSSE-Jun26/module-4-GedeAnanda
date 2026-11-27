@@ -517,6 +517,16 @@ This plan builds the RevoTask MVP in incremental layers: backend skeleton → he
   - [x] 30.2 Jest tests for `completionTarget` and `TaskCheck`; one Playwright scenario
     - _Requirements: REQ-38.1–38.6_
 
+- [x] 31. Edit a column on the board (added after acceptance, CHANGELOG CL-19)
+  - [x] 31.1 API: keep the cards' `completed_at` in step when a column's `is_done` changes; pytest tests
+    - _Requirements: REQ-39.6–39.8_
+
+  - [x] 31.2 Web: `EditColumnForm` in the column header; `applyColumnUpdate` and `removeColumn` in `lib/board.ts`
+    - _Requirements: REQ-39.1–39.5_
+
+  - [x] 31.3 Jest tests for the two `lib/board.ts` functions and `EditColumnForm`; one Playwright scenario
+    - _Requirements: REQ-39.1–39.7_
+
 ## Notes
 
 - Tasks marked with `*` are optional and can be skipped for a faster MVP (there are no optional sub-tasks in this plan — all tests are core requirements per REQ-23).

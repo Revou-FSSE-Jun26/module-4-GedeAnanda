@@ -16,7 +16,14 @@ import { useAuth } from "@/context/AuthContext";
 import { useDragAndDrop } from "@/hooks/useDragAndDrop";
 import { useErrorHandler } from "@/hooks/useErrorHandler";
 import { apiClient } from "@/lib/apiClient";
-import { findCard, removeCard, sortColumns, upsertCard } from "@/lib/board";
+import {
+  applyColumnUpdate,
+  findCard,
+  removeCard,
+  removeColumn,
+  sortColumns,
+  upsertCard,
+} from "@/lib/board";
 import { NO_FILTERS, activeFilterCount, assigneesOf, visibleCardIds, type CardFilters } from "@/lib/filters";
 import type { BoardDetail, Card, ColumnWithCards, Label } from "@/types";
 
@@ -153,7 +160,10 @@ export function KanbanBoard({ board }: { board: BoardDetail }) {
             columns={columns}
             matches={visible}
             dnd={dnd}
+            role={board.role}
             onOpenCard={setOpenCardId}
+            onColumnUpdated={(column) => setColumns((current) => applyColumnUpdate(current, column))}
+            onColumnDeleted={(columnId) => setColumns((current) => removeColumn(current, columnId))}
             onCardCreated={(card) => setColumns((current) => upsertCard(current, card))}
           />
         </div>

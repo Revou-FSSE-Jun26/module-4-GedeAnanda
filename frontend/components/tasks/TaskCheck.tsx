@@ -12,7 +12,7 @@ import { toast } from "@/lib/toast";
 import type { BoardDetail, Card, CardMoveResult } from "@/types";
 
 const NO_DONE_COLUMN =
-  "This board has no column for finished cards. Add one on the board and tick “Cards moved here are finished”.";
+  "This board has no column for finished cards. On the board, open “Edit column” on a column and tick “Cards moved here are finished”.";
 const NO_OPEN_COLUMN = "This board has no column for unfinished cards. Add one on the board first.";
 
 /**

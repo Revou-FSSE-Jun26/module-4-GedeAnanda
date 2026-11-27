@@ -36,7 +36,7 @@ Both run on Vercel in the Singapore region. The database is PostgreSQL on Neon, 
 
 - **Authentication.** Register, log in with a JWT that expires, log out. Pages redirect to `/login` without a session; the API answers `401`.
 - **Boards.** Create, list, rename and delete boards. Each board has members with a role: admin or member.
-- **Columns.** Add, rename, delete and reorder columns. A column can be marked as the "done" column.
+- **Columns.** Add, rename and delete columns from the board. A column can be marked as the place for finished cards, also after it was created; the cards in it then count as finished.
 - **Cards.** Create and edit cards (title, description, assignee, due date, priority). Drag a card within a column or to another column. The screen updates at once and rolls back if the API rejects the move. Deleting a card is a soft delete.
 - **Labels.** Coloured labels that belong to a board. A card can have several; they show as chips on the card.
 - **Checklist.** Break a card into steps and tick them off. The card shows the progress, for example 2/4.
@@ -82,7 +82,7 @@ The API has 10 blueprints. The eight the assignment asks for: `auth`, `users`, `
 The project followed one chain: brief → requirements → design → tasks → code → tests. Every AI output was reviewed before it was committed.
 
 1. **Brief.** I wrote [`specs/project-brief.md`](specs/project-brief.md) as the input for the spec phase.
-2. **Specs with Kiro.** Kiro generated `requirements.md`, `design.md` and `tasks.md` from the brief. I reviewed each first version and recorded the findings in [`specs/reviews/`](specs/reviews/). Every change to the specs is logged in [`specs/CHANGELOG.md`](specs/CHANGELOG.md) with the text before and after (18 entries, CL-01 to CL-18).
+2. **Specs with Kiro.** Kiro generated `requirements.md`, `design.md` and `tasks.md` from the brief. I reviewed each first version and recorded the findings in [`specs/reviews/`](specs/reviews/). Every change to the specs is logged in [`specs/CHANGELOG.md`](specs/CHANGELOG.md) with the text before and after (19 entries, CL-01 to CL-19).
 3. **Steering guidelines.** [`guidelines/`](guidelines/) holds the rules for frontend, backend and database code. Each rule has a rationale and an example. [`guidelines/comparison/`](guidelines/comparison/) shows the same feature generated before and after the guidelines existed.
 4. **Code with Claude Code.** Kiro's free credits ran out after the spec phase, so the implementation was done with Claude Code, working from the same specs and guidelines, one task group at a time: auth, boards, columns, cards, then comments, notifications, users and analytics, then the frontend.
 5. **Review against the guidelines.** Generated code was checked against the guidelines and by tests. Six violations were found and fixed; each is recorded in [`guidelines/violation-report.md`](guidelines/violation-report.md) with the rule, the bad code and the fix. Examples: an N+1 query when loading a board (found only after the query-count test was made stricter), and a page that scrolled sideways on a phone.
@@ -138,7 +138,7 @@ source .venv/bin/activate
 pytest
 ```
 
-354 tests. They use the database in `TEST_DATABASE_URL` and wipe its tables on every run.
+361 tests. They use the database in `TEST_DATABASE_URL` and wipe its tables on every run.
 
 ### Web unit tests (Jest)
 
@@ -147,7 +147,7 @@ cd frontend
 npm test
 ```
 
-133 tests. `npm run lint` and `npm run typecheck` check style and types.
+148 tests. `npm run lint` and `npm run typecheck` check style and types.
 
 ### End-to-end tests (Playwright)
 
@@ -161,7 +161,7 @@ E2E_BASE_URL=https://revotask-web.vercel.app E2E_API_URL=https://revotask-api.ve
 
 Without the two variables it runs against `http://localhost:3000` and `http://localhost:5000`.
 
-13 tests: 4 authentication scenarios, the 8-step Kanban journey (log in, create a board, add two columns, create a card, drag it to Done, reload, check it is still there), one scenario for labels, checklist and filters, two for ticking a task off on My Tasks, and 5 checks at 375 px. No test uses a fixed wait. Every run registers its own throwaway accounts. The report of the last run against production is in [`frontend/playwright-report/`](frontend/playwright-report/).
+14 tests: 4 authentication scenarios, the 8-step Kanban journey (log in, create a board, add two columns, create a card, drag it to Done, reload, check it is still there), one scenario for labels, checklist and filters, two for ticking a task off on My Tasks, one for editing a column, and 5 checks at 375 px. No test uses a fixed wait. Every run registers its own throwaway accounts. The report of the last run against production is in [`frontend/playwright-report/`](frontend/playwright-report/).
 
 ### API collection (Postman)
 
@@ -177,7 +177,7 @@ Measured on 27 November 2026.
 
 | Check | Result |
 | --- | --- |
-| Playwright against the live URLs | 13 of 13 passed; 39 of 39 when the suite is repeated 3 times |
+| Playwright against the live URLs | 14 of 14 passed; 42 of 42 when the suite is repeated 3 times |
 | Postman collection against the live API | 43 requests, 46 assertions, 0 failed |
 | `GET /api/boards/<id>` with 200 cards, p95 (target: 500 ms) | 257 ms on a reused connection, 348 ms with a new connection per request |
 

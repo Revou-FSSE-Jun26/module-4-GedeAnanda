@@ -1,6 +1,7 @@
 """Column CRUD and the FLOAT order strategy (REQ-6)."""
 
 import uuid
+from datetime import datetime, timezone
 
 import pytest
 
@@ -381,3 +382,99 @@ def test_reorder_without_token_returns_401(client, board, four_columns):
     )
 
     assert_error(res, 401)
+
+
+# --- is_done changes and the cards' completed_at (REQ-39.6 to REQ-39.8) -------------------
+
+
+def patch_column(client, headers, column, **body):
+    return client.patch(f"/api/columns/{column.id}", json=body, headers=headers)
+
+
+def test_marking_a_column_done_finishes_its_open_cards(client, board, test_user, auth_headers):
+    column = add_column(board, "Shipped", 1024)
+    first = add_card(column, test_user, "First", 1024)
+    second = add_card(column, test_user, "Second", 2048)
+
+    res = patch_column(client, auth_headers(test_user), column, is_done=True)
+
+    assert res.status_code == 200
+    db.session.expire_all()
+    assert first.completed_at is not None
+    assert second.completed_at == first.completed_at
+
+
+def test_marking_a_column_done_keeps_the_time_a_card_was_already_finished_at(
+    client, board, test_user, auth_headers
+):
+    column = add_column(board, "Shipped", 1024)
+    card = add_card(column, test_user, "Finished last week", 1024)
+    earlier = datetime(2026, 11, 20, 9, 0, tzinfo=timezone.utc)
+    card.completed_at = earlier
+    db.session.commit()
+
+    patch_column(client, auth_headers(test_user), column, is_done=True)
+
+    db.session.expire_all()
+    assert card.completed_at == earlier
+
+
+def test_unmarking_a_done_column_reopens_its_cards(client, board, test_user, auth_headers):
+    column = add_column(board, "Done", 1024, is_done=True)
+    card = add_card(column, test_user, "Finished", 1024)
+    card.completed_at = datetime.now(timezone.utc)
+    db.session.commit()
+
+    res = patch_column(client, auth_headers(test_user), column, is_done=False)
+
+    assert res.status_code == 200
+    db.session.expire_all()
+    assert card.completed_at is None
+
+
+def test_changing_is_done_touches_only_that_columns_active_cards(
+    client, board, test_user, auth_headers
+):
+    target = add_column(board, "Shipped", 1024)
+    other = add_column(board, "To Do", 2048)
+    elsewhere = add_card(other, test_user, "In another column", 1024)
+    deleted = add_card(target, test_user, "Deleted", 1024, deleted=True)
+
+    patch_column(client, auth_headers(test_user), target, is_done=True)
+
+    db.session.expire_all()
+    assert elsewhere.completed_at is None
+    assert deleted.completed_at is None
+
+
+def test_renaming_a_column_leaves_completed_at_alone(client, board, test_user, auth_headers):
+    column = add_column(board, "Done", 1024, is_done=True)
+    card = add_card(column, test_user, "Open card in a done column", 1024)  # completed_at is null
+
+    patch_column(client, auth_headers(test_user), column, name="Finished")
+
+    db.session.expire_all()
+    assert card.completed_at is None
+
+
+def test_sending_the_same_is_done_again_changes_no_card(client, board, test_user, auth_headers):
+    column = add_column(board, "Done", 1024, is_done=True)
+    card = add_card(column, test_user, "Open card in a done column", 1024)
+
+    patch_column(client, auth_headers(test_user), column, is_done=True)
+
+    db.session.expire_all()
+    assert card.completed_at is None
+
+
+def test_a_card_finished_by_its_column_shows_as_finished_in_my_tasks(
+    client, board, test_user, auth_headers
+):
+    column = add_column(board, "Shipped", 1024)
+    add_card(column, test_user, "Mine", 1024, assignee=test_user)
+    headers = auth_headers(test_user)
+
+    patch_column(client, headers, column, is_done=True)
+
+    mine = client.get("/api/cards?assignee=me", headers=headers).get_json()["data"]
+    assert mine[0]["completed_at"] is not None

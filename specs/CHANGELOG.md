@@ -29,6 +29,7 @@ Raw AI output is committed **before** each refinement, so every entry can be ver
 | [CL-16](#cl-16) | `requirements.md`, `design.md`, `tasks.md` | Scope addition | Claude Code | Added REQ-33 (visual design and interaction feedback) and task 26; one planned criterion was removed after testing showed it broke the Kanban test |
 | [CL-17](#cl-17) | brief, `requirements.md`, `design.md`, `tasks.md` | Scope addition | Claude Code | Added REQ-34 to REQ-37 (labels, checklist, board filters) and tasks 27 to 29; two new blueprints; brief v0.5 |
 | [CL-18](#cl-18) | `requirements.md`, `design.md`, `tasks.md` | Fix found by use | Claude Code | Added REQ-38: the circle in front of a task on My Tasks is now a working checkbox |
+| [CL-19](#cl-19) | `requirements.md`, `design.md`, `tasks.md` | Gap closed | Claude Code | Added REQ-39: rename a column, mark it as finished, delete it, from the board; the API keeps cards' `completed_at` in step |
 
 ---
 
@@ -720,3 +721,36 @@ The accepted documents were copied to `/specs`. Next phase: steering guidelines,
 - **A limit that is stated, not hidden.** A board with no column marked as done cannot finish a card, from My Tasks or anywhere else. The checkbox then unticks itself and a message says what is missing. The web app still has no control to mark an existing column as done after it was created; the checkbox only makes that older gap easier to run into.
 - **Tests.** 13 Jest tests (the target column for each case, the optimistic tick, both failure paths, and that the box works again after a failure) and 2 Playwright scenarios (tick, check on the board, reload, untick; a board without a done column). The whole Playwright suite was run four times against a production build: 52 passes in 52 runs.
 - **What this says about the earlier review.** CL-16 was checked with screenshots for how it looked. A screenshot cannot show that something that looks clickable is not.
+
+---
+
+## CL-19
+
+**Gap closed: a column can be edited from the board (REQ-39)**
+
+| Field | Value |
+| ----- | ----- |
+| Date | 2026-11-27 |
+| Artifact | `requirements.md`, `design.md`, `tasks.md` (both in `/specs` and in `.kiro/specs/revotask-mvp/`) |
+| Tool | Claude Code |
+| Trigger | The gap named in CL-18: a board with no done column cannot finish a card, and the web app had no way to turn an existing column into one |
+| Commits | before `8870938` → after: the commit that adds this entry |
+
+**Trigger.** REQ-7 has had `PATCH /api/columns/<id>` and `DELETE /api/columns/<id>` since the first accepted version, and both were implemented and tested in the API. The frontend requirements (REQ-27) asked only for adding a column, so the web app never got a way to rename, re-mark or delete one. The requirements review in CL-03 and CL-07 checked that every criterion had code, not that every endpoint had a screen. This is that check, done late for one endpoint pair.
+
+**Before → After.**
+
+| Document | Before | After |
+| -------- | ------ | ----- |
+| `requirements.md` | 38 requirements, 232 criteria | 39 requirements, 240 criteria. New REQ-39: five criteria for the edit form, three for the API |
+| `design.md` | `completed_at` changes only when a card moves | New section; `sync_completed_at` keeps cards and column in step when `is_done` changes; 4 traceability rows |
+| `tasks.md` | 30 tasks | Task 31 |
+
+**A change in API behaviour.** Adding the form exposed a hole in the accepted design. `PATCH /api/columns/<id>` could always change `is_done`, but the cards already in the column kept their old `completed_at`. Marking a column with five cards as done left five cards that the board showed under "done" and My Tasks showed as open, and the analytics count of finished cards missed them. Nobody had hit it because no screen could send that request. The service now finishes or reopens the column's active cards in the same transaction. A request that does not change `is_done` (a rename, or sending the same value again) touches no card.
+
+**Review of the result.**
+
+- **Tests.** 7 pytest tests for the three API criteria, including that cards finished earlier keep their time, that soft-deleted cards and other columns are not touched, and that a rename changes nothing. 15 Jest tests (the two board functions and the form). 1 Playwright scenario: mark an existing column as finished, see its card as done on My Tasks, rename, reload, delete after confirming.
+- **Deliberate breakages.** The new service code was broken in six ways (never sync, sync when nothing changed, overwrite an earlier finish time, sync every column, sync deleted cards, never reopen). All six made a test fail.
+- **Repeated runs.** The whole Playwright suite ran four times against a production build: 56 passes in 56 runs.
+- **Deleting is guarded twice.** The API allows only an admin (unchanged, REQ-7.3). The form does not show the control to a member, and for an admin it needs a second click after stating how many cards go with the column.

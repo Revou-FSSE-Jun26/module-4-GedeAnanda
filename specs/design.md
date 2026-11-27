@@ -881,6 +881,14 @@ A card is finished when it sits in a column marked `is_done`; the API sets `comp
 
 If the board has no column of the needed kind, nothing is sent and a toast says which kind is missing.
 
+## Editing a Column on the Board (REQ-39)
+
+Added after the MVP was accepted (CHANGELOG CL-19).
+
+**Web.** `EditColumnForm` is a button with three dots beside each column's heading and the `BaseModal` form it opens. It sends `PATCH /api/columns/<id>` with only the fields that changed. For an admin it also offers "Delete column", which needs a second click on "Yes, delete it" after a message that names the number of cards. `KanbanBoard` applies the result with two pure functions in `lib/board.ts`: `applyColumnUpdate` and `removeColumn`.
+
+**API.** Until now `completed_at` changed only when a card was moved (§5.5). With an edit form, a column's `is_done` can change while cards sit in it, and the cards would then disagree with their column: a card in a done column that My Tasks shows as open. `update_column` now calls `sync_completed_at(column)` when, and only when, `is_done` actually changes. Becoming done sets `completed_at` on the column's active cards that have none (cards finished earlier keep their time); stopping being done clears it. It runs in the same transaction as the column update (guideline DB-08) and goes through `active_cards()` (DB-04). `applyColumnUpdate` makes the same change to the cards on the page, so the board does not need a reload.
+
 ## Response Schemas
 
 > *Marshmallow dump-only schemas used to serialise API responses. These are used in the endpoint catalog below. The `password_hash` field is never included in any response schema.*
@@ -1375,3 +1383,7 @@ Runs against the live deployment (web and API on Vercel, database on Neon). Uses
 | REQ-38 | 2–4 | Target column for ticking and unticking; missing column | `completionTarget` in `frontend/lib/tasks.ts` |
 | REQ-38 | 5–6 | Optimistic tick, rollback, reload | `frontend/components/tasks/TaskCheck.tsx` (`router.refresh()`) |
 | REQ-38 | 7 | No API change | uses `GET /api/boards/<id>` and `PATCH /api/cards/<id>/position` as they are |
+| REQ-39 | 1–3 | Edit form: rename, finished setting, validation | `frontend/components/board/EditColumnForm.tsx`, placed by `frontend/components/board/ColumnList.tsx` |
+| REQ-39 | 4–5 | Delete with confirmation, admin only | `frontend/components/board/EditColumnForm.tsx` |
+| REQ-39 | 2 | Result shown without a reload | `applyColumnUpdate`, `removeColumn` in `frontend/lib/board.ts` |
+| REQ-39 | 6–8 | Cards' `completed_at` follows the column's `is_done` | `sync_completed_at` in `backend/app/blueprints/columns/service.py` |
