@@ -1,4 +1,5 @@
 {
   "$schema": "https://openapi.vercel.sh/vercel.json",
-  "buildCommand": "python -m flask --app wsgi db upgrade"
+  "buildCommand": "python -m flask --app wsgi db upgrade",
+  "regions": ["sin1"]
 }
